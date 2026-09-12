@@ -7,7 +7,7 @@
 
 ## 📌 Executive Summary
 
-Agricultural supply chains generate heterogeneous, noisy data across mandi arrivals, wholesale trading prices, Minimum Support Prices (MSP), IoT weather sensors, and warehouse transport logistics.
+Agricultural supply chains generate heterogeneous, noisy data across mandi arrivals, wholesale trading prices, Minimum Support Prices (MSP), IoT weather sensors, and warehouse transport logistics. 
 
 **AgroBuddy** transforms messy raw agricultural data into actionable supply-chain insights. It identifies **supply stress, price pressure (modal prices dropping below MSP), weather impact on arrivals, and logistics bottlenecks** through a reproducible 6-layer architecture:
 
@@ -29,7 +29,8 @@ agrobuddy/
 │   │   ├── track3_transport_logistics.csv
 │   │   └── track3_weather_sensors.xlsx
 │   └── processed/                       # Rescued clean outputs (CSV / Parquet)
-│       └── clean_mandi_arrivals.csv
+│       ├── clean_mandi_arrivals.csv
+│       └── clean_mandi_master.csv
 │
 ├── notebooks/                           # Reproducible Gate 2 Jupyter Notebooks
 │   ├── 01_Mandi_Arrivals_Data_Rescue.ipynb
@@ -64,12 +65,21 @@ Our data rescue pipeline enforces **zero lazy row drops**, intelligent imputatio
 | **Missing Farmer Count**| 3,800 rows missing | **0 missing** | Imputed missing farmer counts using crop-wise median volume batch ratios (`arrival_qtl / median_ratio`). |
 | **Missing Variety** | 3,627 rows missing | **0 missing** | Imputed missing variety entries with `"Common"`. |
 
+### Dataset 2: Mandi Master (`track3_mandi_master.csv`) — COMPLETED ✅
+
+| Audit Metric | Raw State | Rescued / Standardized State | Rationale & Methodology |
+| :--- | :---: | :---: | :--- |
+| **Total Master Records** | 60 rows | **57 unique Mandi Master rows** | Deduplicated 3 duplicate primary key entries (`MANDI001`, `MANDI006`, `MANDI031`) to prevent SQL JOIN row multiplication. |
+| **Mandi Type Casing** | Mixed (`APMC`, `apmc`, `PRIVATE`, `Private`, `Direct`, `NaN`) | **3 Canonical Enums** (`APMC`, `Private`, `Direct`) | Normalized case variations and imputed 11 missing `mandi_type` entries with mode category (`APMC`). |
+| **Missing Location** | 4 missing districts, 4 missing states | **0 missing** | Imputed missing geographic attributes for 8 mandis via location lookup dictionary (0 master rows lost). |
+| **Missing Acreage** | 6 missing area rows | **0 missing** | Imputed missing `total_area_acres` using median acreage size of corresponding mandi type (~24-25 acres). |
+
 ---
 
 ## 🛠️ Datathon Progress Scorecard
 
 - [x] **Phase 1: Dataset 1 — Mandi Arrivals Data Rescue (`01_Mandi_Arrivals_Data_Rescue.ipynb`)**
-- [ ] **Phase 2: Dataset 2 — Mandi Master Data Rescue (`02_Mandi_Master_Data_Rescue.ipynb`)**
+- [x] **Phase 2: Dataset 2 — Mandi Master Data Rescue (`02_Mandi_Master_Data_Rescue.ipynb`)**
 - [ ] **Phase 3: Dataset 3 — Price & MSP Data Rescue (`03_Price_and_MSP_Data_Rescue.ipynb`)**
 - [ ] **Phase 4: Dataset 4 — Transport Logistics Data Rescue (`04_Transport_Logistics_Data_Rescue.ipynb`)**
 - [ ] **Phase 5: Dataset 5 — Weather Sensors Data Rescue (`05_Weather_Sensors_Data_Rescue.ipynb`)**
@@ -81,43 +91,28 @@ Our data rescue pipeline enforces **zero lazy row drops**, intelligent imputatio
 
 ### 1. Environment Setup
 Clone the repository and install requirements:
-
 ```bash
-git clone https://github.com/your-username/agrobuddy.git
-cd agrobuddy
+git clone https://github.com/shayan-codes-405/agro-buddy.git
 pip install -r requirements.txt
 ```
 
 ### 2. Run Data Rescue Notebooks
 Open VS Code or Jupyter Lab and execute the notebooks top-to-bottom:
-
 ```bash
 jupyter notebook notebooks/01_Mandi_Arrivals_Data_Rescue.ipynb
+jupyter notebook notebooks/02_Mandi_Master_Data_Rescue.ipynb
 ```
 
 ### 3. Verify Clean Outputs
-The processed clean dataset will be generated automatically under `data/processed/clean_mandi_arrivals.csv`.
+The processed clean datasets will be generated automatically under `data/processed/`:
+- `data/processed/clean_mandi_arrivals.csv`
+- `data/processed/clean_mandi_master.csv`
 
 ---
 
 ## 🧱 Technology Stack
-
 - **Data Engineering**: Python 3.10+, Pandas, NumPy, Regex
 - **Analytical Storage**: DuckDB / Apache Parquet
 - **Backend API**: FastAPI (REST endpoints)
 - **Frontend Dashboard**: Next.js / TypeScript / Recharts
 - **AI Analyst**: Natural Language to SQL Semantic Query Layer
-
----
-
-## 🎯 Value Proposition
-
-AgroBuddy is designed to help stakeholders move from raw mandi data to real operational intelligence:
-
-- Detect supply stress before it escalates in key mandis
-- Monitor crops trading below MSP and flag price distress
-- Correlate weather anomalies with shipment and arrival patterns
-- Identify transportation delays and route bottlenecks
-- Build a clean, queryable data foundation for future AI-powered decision support
-
-This makes the project useful not only as a datathon submission, but also as a practical foundation for a production-ready agri supply-chain intelligence system.
