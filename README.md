@@ -31,7 +31,8 @@ agrobuddy/
 │   └── processed/                       # Rescued clean outputs (CSV / Parquet)
 │       ├── clean_mandi_arrivals.csv
 │       ├── clean_mandi_master.csv
-│       └── clean_price_and_msp.csv
+│       ├── clean_price_and_msp.csv
+│       └── clean_transport_logistics.csv
 │
 ├── notebooks/                           # Reproducible Gate 2 Jupyter Notebooks
 │   ├── 01_Mandi_Arrivals_Data_Rescue.ipynb
@@ -87,6 +88,18 @@ Our data rescue pipeline enforces **zero lazy row drops**, intelligent imputatio
 | **Geographic Imputation** | 1,235 missing mandi IDs, 773 missing districts | **172 missing mandi IDs, 82 missing districts** | Imputed missing locations cross-referencing `clean_mandi_master.csv` lookup maps. |
 | **Price Crash Analytics** | Uncalculated raw prices | **3,667 below-MSP alerts** | Derived `msp_gap` (`msp - modal_price`) and created `below_msp_flag` for analytics marts. |
 
+### Dataset 4: Transport & Logistics (`track3_transport_logistics.csv`) — COMPLETED ✅
+
+| Audit Metric | Raw State | Rescued / Standardized State | Rationale & Methodology |
+| :--- | :---: | :---: | :--- |
+| **Total Records** | 10,400 rows | **10,000 unique trips** | Deduplicated 400 exact duplicate trip records (0 data loss). |
+| **Negative Transit Hours** | 563 negative entries | **563 corrected** | Fixed sign inversion logging anomalies using `abs()` and set `is_negative_anomaly = 1`. |
+| **Distance Unit Standardisation** | Mixed (`km` vs `miles`) | **5,870,414.06 KM** | Converted 1,497 miles records to kilometers (`x 1.60934`) and standardized unit to `km`. |
+| **Vehicle Registration Format** | Mixed spacing, casing, dashes | **100% RTO Format (`SS-DD-XX-NNNN`)** | Standardized Indian vehicle numbers into canonical RTO format (`UP-50-BC-6882`). |
+| **Mandi ID Standardisation** | Unformatted (`mandi_019`, `038`, `mandi041`) | **Canonical `MANDIxxx` Format** | Normalized primary keys into `MANDI019`, `MANDI038`, `MANDI041`. |
+| **Timestamp Reconstruction** | 1,006 missing arrival timestamps | **100 missing timestamps** | Reconstructed missing arrival timestamps (`departure_time + transit_hours`) and missing transit hours. |
+| **Logistics Delay Analytics** | Uncalculated delays | **192 delayed trip alerts** | Derived `expected_hours` (`dist / 40 km/h`) and created `is_delayed_flag` for bottleneck analytics. |
+
 ---
 
 ## 🛠️ Datathon Progress Scorecard
@@ -94,7 +107,7 @@ Our data rescue pipeline enforces **zero lazy row drops**, intelligent imputatio
 - [x] **Phase 1: Dataset 1 — Mandi Arrivals Data Rescue (`01_Mandi_Arrivals_Data_Rescue.ipynb`)**
 - [x] **Phase 2: Dataset 2 — Mandi Master Data Rescue (`02_Mandi_Master_Data_Rescue.ipynb`)**
 - [x] **Phase 3: Dataset 3 — Price & MSP Data Rescue (`03_Price_and_MSP_Data_Rescue.ipynb`)**
-- [ ] **Phase 4: Dataset 4 — Transport Logistics Data Rescue (`04_Transport_Logistics_Data_Rescue.ipynb`)**
+- [x] **Phase 4: Dataset 4 — Transport Logistics Data Rescue (`04_Transport_Logistics_Data_Rescue.ipynb`)**
 - [ ] **Phase 5: Dataset 5 — Weather Sensors Data Rescue (`05_Weather_Sensors_Data_Rescue.ipynb`)**
 - [ ] **Phase 6: Master Automated Pipeline (`src/run_pipeline.py`)**
 
@@ -121,6 +134,7 @@ The processed clean datasets will be generated automatically under `data/process
 - `data/processed/clean_mandi_arrivals.csv`
 - `data/processed/clean_mandi_master.csv`
 - `data/processed/clean_price_and_msp.csv`
+- `data/processed/clean_transport_logistics.csv`
 
 ---
 
