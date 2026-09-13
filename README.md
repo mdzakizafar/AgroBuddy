@@ -32,7 +32,8 @@ agrobuddy/
 │       ├── clean_mandi_arrivals.csv
 │       ├── clean_mandi_master.csv
 │       ├── clean_price_and_msp.csv
-│       └── clean_transport_logistics.csv
+│       ├── clean_transport_logistics.csv
+│       └── clean_weather_sensors.csv
 │
 ├── notebooks/                           # Reproducible Gate 2 Jupyter Notebooks
 │   ├── 01_Mandi_Arrivals_Data_Rescue.ipynb
@@ -100,6 +101,18 @@ Our data rescue pipeline enforces **zero lazy row drops**, intelligent imputatio
 | **Timestamp Reconstruction** | 1,006 missing arrival timestamps | **100 missing timestamps** | Reconstructed missing arrival timestamps (`departure_time + transit_hours`) and missing transit hours. |
 | **Logistics Delay Analytics** | Uncalculated delays | **192 delayed trip alerts** | Derived `expected_hours` (`dist / 40 km/h`) and created `is_delayed_flag` for bottleneck analytics. |
 
+### Dataset 5: Weather Sensors (`track3_weather_sensors.xlsx`) — COMPLETED ✅
+
+| Audit Metric | Raw State | Rescued / Standardized State | Rationale & Methodology |
+| :--- | :---: | :---: | :--- |
+| **Total Records** | 15,000 rows | **15,000 rows** | Preserved 100% of weather sensor telemetry readings. |
+| **Temperature Unit Standardisation** | Mixed (`°C`, `°F`, `Celsius`, `Fahrenheit`) | **100% Celsius (`15.0°C` to `40.0°C`)** | Converted 6,020 Fahrenheit records (`(F - 32) * 5/9`) and inferred missing units for values > 50°F. |
+| **Rainfall Unit Standardisation** | Mixed (`mm` vs `inches`) | **355,722.41 MM** | Converted 3,796 inches records to millimeters (`x 25.4`) and standardized unit to `mm`. |
+| **Negative Rainfall Anomalies** | 1,518 negative entries | **1,518 corrected** | Fixed sign inversion logging errors using `abs()` and set `is_negative_rainfall_anomaly = 1`. |
+| **Timestamp Timezone Standardisation** | Mixed (`UTC` vs `IST`) | **100% IST (`0 missing timestamps`)** | Parsed 5,141 UTC timestamps (`UTC + 5:30`) and imputed 1,555 missing timestamps via sensor-wise ffill/bfill. |
+| **Humidity Imputation** | 1,500 missing humidity rows | **0 missing humidity rows** | Imputed missing relative humidity percentage using sensor-wise median values. |
+| **Extreme Weather Analytics** | Uncalculated risk flags | **2,883 Heatwaves, 5,714 Heavy Rains** | Flagged `is_heatwave_flag` (> 35°C) and `is_heavy_rain_flag` (> 30 mm) for supply chain risk modeling. |
+
 ---
 
 ## 🛠️ Datathon Progress Scorecard
@@ -108,7 +121,7 @@ Our data rescue pipeline enforces **zero lazy row drops**, intelligent imputatio
 - [x] **Phase 2: Dataset 2 — Mandi Master Data Rescue (`02_Mandi_Master_Data_Rescue.ipynb`)**
 - [x] **Phase 3: Dataset 3 — Price & MSP Data Rescue (`03_Price_and_MSP_Data_Rescue.ipynb`)**
 - [x] **Phase 4: Dataset 4 — Transport Logistics Data Rescue (`04_Transport_Logistics_Data_Rescue.ipynb`)**
-- [ ] **Phase 5: Dataset 5 — Weather Sensors Data Rescue (`05_Weather_Sensors_Data_Rescue.ipynb`)**
+- [x] **Phase 5: Dataset 5 — Weather Sensors Data Rescue (`05_Weather_Sensors_Data_Rescue.ipynb`)**
 - [ ] **Phase 6: Master Automated Pipeline (`src/run_pipeline.py`)**
 
 ---
@@ -127,6 +140,9 @@ Open VS Code or Jupyter Lab and execute the notebooks top-to-bottom:
 ```bash
 jupyter notebook notebooks/01_Mandi_Arrivals_Data_Rescue.ipynb
 jupyter notebook notebooks/02_Mandi_Master_Data_Rescue.ipynb
+jupyter notebook notebooks/03_Price_and_MSP_Data_Rescue.ipynb
+jupyter notebook notebooks/04_Transport_Logistics_Data_Rescue.ipynb
+jupyter notebook notebooks/05_Weather_Sensors_Data_Rescue.ipynb
 ```
 
 ### 3. Verify Clean Outputs
@@ -135,6 +151,7 @@ The processed clean datasets will be generated automatically under `data/process
 - `data/processed/clean_mandi_master.csv`
 - `data/processed/clean_price_and_msp.csv`
 - `data/processed/clean_transport_logistics.csv`
+- `data/processed/clean_weather_sensors.csv`
 
 ---
 
