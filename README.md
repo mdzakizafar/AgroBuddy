@@ -30,7 +30,8 @@ agrobuddy/
 │   │   └── track3_weather_sensors.xlsx
 │   └── processed/                       # Rescued clean outputs (CSV / Parquet)
 │       ├── clean_mandi_arrivals.csv
-│       └── clean_mandi_master.csv
+│       ├── clean_mandi_master.csv
+│       └── clean_price_and_msp.csv
 │
 ├── notebooks/                           # Reproducible Gate 2 Jupyter Notebooks
 │   ├── 01_Mandi_Arrivals_Data_Rescue.ipynb
@@ -74,13 +75,25 @@ Our data rescue pipeline enforces **zero lazy row drops**, intelligent imputatio
 | **Missing Location** | 4 missing districts, 4 missing states | **0 missing** | Imputed missing geographic attributes for 8 mandis via location lookup dictionary (0 master rows lost). |
 | **Missing Acreage** | 6 missing area rows | **0 missing** | Imputed missing `total_area_acres` using median acreage size of corresponding mandi type (~24-25 acres). |
 
+### Dataset 3: Wholesale Price & MSP (`track3_price_and_msp.json`) — COMPLETED ✅
+
+| Audit Metric | Raw State | Rescued / Standardized State | Rationale & Methodology |
+| :--- | :---: | :---: | :--- |
+| **Total Records** | 12,000 JSON records | **12,000 rows** | Preserved 100% of trading records without dropping any rows. |
+| **Price & Currency Clean**| Text with `₹`, `Rs.`, `INR`, `,`, `/-` | **100% Numeric Floats** | Stripped currency symbols and parsed double-precision price values across `min_price`, `max_price`, `modal_price`, `msp`. |
+| **Mandi ID Standardisation**| Unformatted (`M012`, `013`, `MANDI-050`) | **Canonical `MANDIxxx` Format** | Extracted numeric digits to standardize all mandi primary keys into `MANDI012`, `MANDI013`, `MANDI050`. |
+| **Crop Name Aliases** | 36 raw variants | **6 Canonical Categories** | Mapped English, Vernacular, and Hindi aliases to *Wheat, Rice, Cotton, Mustard, Maize, Sugarcane*. |
+| **Date Format** | Mixed patterns (`2026/07/26`, `09.01.2026`, `08-Aug-2026`) | **100% YYYY-MM-DD** | Parsed mixed date strings into `ISO-8601 YYYY-MM-DD` with **0 missing dates**. |
+| **Geographic Imputation** | 1,235 missing mandi IDs, 773 missing districts | **172 missing mandi IDs, 82 missing districts** | Imputed missing locations cross-referencing `clean_mandi_master.csv` lookup maps. |
+| **Price Crash Analytics** | Uncalculated raw prices | **3,667 below-MSP alerts** | Derived `msp_gap` (`msp - modal_price`) and created `below_msp_flag` for analytics marts. |
+
 ---
 
 ## 🛠️ Datathon Progress Scorecard
 
 - [x] **Phase 1: Dataset 1 — Mandi Arrivals Data Rescue (`01_Mandi_Arrivals_Data_Rescue.ipynb`)**
 - [x] **Phase 2: Dataset 2 — Mandi Master Data Rescue (`02_Mandi_Master_Data_Rescue.ipynb`)**
-- [ ] **Phase 3: Dataset 3 — Price & MSP Data Rescue (`03_Price_and_MSP_Data_Rescue.ipynb`)**
+- [x] **Phase 3: Dataset 3 — Price & MSP Data Rescue (`03_Price_and_MSP_Data_Rescue.ipynb`)**
 - [ ] **Phase 4: Dataset 4 — Transport Logistics Data Rescue (`04_Transport_Logistics_Data_Rescue.ipynb`)**
 - [ ] **Phase 5: Dataset 5 — Weather Sensors Data Rescue (`05_Weather_Sensors_Data_Rescue.ipynb`)**
 - [ ] **Phase 6: Master Automated Pipeline (`src/run_pipeline.py`)**
@@ -107,6 +120,7 @@ jupyter notebook notebooks/02_Mandi_Master_Data_Rescue.ipynb
 The processed clean datasets will be generated automatically under `data/processed/`:
 - `data/processed/clean_mandi_arrivals.csv`
 - `data/processed/clean_mandi_master.csv`
+- `data/processed/clean_price_and_msp.csv`
 
 ---
 
