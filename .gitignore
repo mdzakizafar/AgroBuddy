@@ -10,6 +10,8 @@ __pycache__/
 # Databases
 duckdb/
 *.duckdb
+mlruns/
+mlflow.db
 
 # Frontend
 frontend/node_modules/

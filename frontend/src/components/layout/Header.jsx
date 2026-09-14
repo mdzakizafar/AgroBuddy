@@ -4,7 +4,7 @@ import { Search, Mic, RotateCw, Bell, User, CloudSun, Calendar } from 'lucide-re
 export default function Header({ pageTitle, onRefresh, isRefreshing }) {
   const currentDate = new Date().toLocaleDateString('en-IN', {
     weekday: 'long',
-    day: '02-digit',
+    day: '2-digit',
     month: 'short',
     year: 'numeric'
   });
