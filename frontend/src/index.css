@@ -1,0 +1,98 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg-page: #F6F8EF;
+    --bg-card: #FFFFFF;
+    --bg-card-glass: rgba(255, 255, 255, 0.85);
+    --border-accent: rgba(91, 123, 16, 0.15);
+    --text-primary: #1F2E0A;
+    --text-secondary: #526633;
+    --text-muted: #7A8F59;
+    --color-olive-dark: #364E00;
+    --color-olive-primary: #5B7B10;
+    --color-olive-light: #7E9E1E;
+    --color-amber-gold: #D97706;
+  }
+
+  body {
+    background-color: #F6F8EF;
+    color: #1F2E0A;
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(91, 123, 16, 0.05);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(91, 123, 16, 0.25);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(91, 123, 16, 0.45);
+}
+
+/* Agro Cards & Glassmorphism */
+.agro-card {
+  background-color: #FFFFFF;
+  border: 1px solid rgba(91, 123, 16, 0.12);
+  box-shadow: 0 4px 20px -2px rgba(45, 65, 12, 0.04), 0 2px 6px -1px rgba(45, 65, 12, 0.02);
+  border-radius: 1.25rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.agro-card:hover {
+  box-shadow: 0 8px 30px -4px rgba(45, 65, 12, 0.08), 0 4px 10px -2px rgba(45, 65, 12, 0.04);
+}
+
+.agro-card-dark {
+  background: linear-gradient(145deg, #1C270A 0%, #2A3B0F 100%);
+  border: 1px solid rgba(132, 204, 22, 0.2);
+  box-shadow: 0 10px 35px -5px rgba(28, 39, 10, 0.25);
+  border-radius: 1.25rem;
+  color: #FFFFFF;
+}
+
+.agro-glass {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(91, 123, 16, 0.15);
+}
+
+.agro-pill {
+  background: rgba(91, 123, 16, 0.08);
+  border: 1px solid rgba(91, 123, 16, 0.18);
+  border-radius: 9999px;
+  color: #364E00;
+  font-weight: 600;
+}
+
+/* Glowing Status Dots */
+.live-dot {
+  box-shadow: 0 0 10px #84CC16;
+}
+
+.warning-dot {
+  box-shadow: 0 0 10px #F59E0B;
+}
+
+.alert-dot {
+  box-shadow: 0 0 10px #EF4444;
+}
+
+/* Animations */
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}

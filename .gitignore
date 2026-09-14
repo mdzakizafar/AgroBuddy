@@ -11,6 +11,10 @@ __pycache__/
 duckdb/
 *.duckdb
 
+# Frontend
+frontend/node_modules/
+frontend/dist/
+
 # Local environment & secrets
 .env
 .env.local
