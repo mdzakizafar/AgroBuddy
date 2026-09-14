@@ -1,0 +1,21 @@
+# Python & Virtualenv
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Databases
+duckdb/
+*.duckdb
+
+# Local environment & secrets
+.env
+.env.local
+
+# OS / IDE
+.DS_Store
+.vscode/
+.idea/

@@ -1,163 +1,144 @@
-# 🌾 AgroBuddy: Mandi-to-Market Supply Chain Intelligence
+# AgroBuddy — Mandi-to-Market Supply Chain Optimizer (Backend)
 
-> **TransOrg AgentIQ Datathon — Track 3: AgriTech Supply Chain Optimizer**  
-> An end-to-end data rescue, supply chain analytics, and AI-driven market intelligence platform.
+AgroBuddy is an AgriTech datathon application that optimizes mandi arrivals, farmer price realization (MSP tracking), transport logistics, and operational risks across regional agricultural markets.
+
+This directory contains the complete **FastAPI + DuckDB + Semantic Analytics + Dual Groq AI** backend powering the AgroBuddy frontend.
 
 ---
 
-## 📌 Executive Summary
+## 🏗️ Architecture Overview
 
-Agricultural supply chains generate heterogeneous, noisy data across mandi arrivals, wholesale trading prices, Minimum Support Prices (MSP), IoT weather sensors, and warehouse transport logistics. 
-
-**AgroBuddy** transforms messy raw agricultural data into actionable supply-chain insights. It identifies **supply stress, price pressure (modal prices dropping below MSP), weather impact on arrivals, and logistics bottlenecks** through a reproducible 6-layer architecture:
-
-```text
-RAW DATA → DATA RESCUE → CANONICAL MODEL → DUCKDB MART → ANALYTICS & ML → FASTAPI & DASHBOARD → AI ANALYST
+```
+Processed Datasets (CSV)
+         │
+         ▼
+  DuckDB Engine (duckdb/agrobuddy.duckdb)
+  [dim_mandi, fact_arrivals, fact_prices, fact_transport, fact_weather]
+         │
+         ▼
+  Repositories (duckdb queries with common filter validation)
+         │
+         ▼
+  Semantic Analytics & Risk Engine Layer (Source of Truth)
+         ├───► Analytics Context Layer (PageInsightContext) ──► Model #1: Insight LLM (Passive)
+         ├───► Typed Capabilities & Query Planning ──────────► Model #2: AgroBuddy AI (Active Agent)
+         │                                                            │
+         ▼                                                            ▼
+  FastAPI V1 Endpoints ◄──────────────────────────────────────── VizSpec Generator
+         │
+         ▼
+  React / ECharts Frontend
 ```
 
----
-
-## 📂 Repository Directory Structure
-
-```text
-agrobuddy/
-├── data/
-│   ├── raw/                             # Immutable source datasets (CSV, JSON, XLSX)
-│   │   ├── track3_mandi_arrivals.csv
-│   │   ├── track3_mandi_master.csv
-│   │   ├── track3_price_and_msp.json
-│   │   ├── track3_transport_logistics.csv
-│   │   └── track3_weather_sensors.xlsx
-│   └── processed/                       # Rescued clean outputs (CSV / Parquet)
-│       ├── clean_mandi_arrivals.csv
-│       ├── clean_mandi_master.csv
-│       ├── clean_price_and_msp.csv
-│       ├── clean_transport_logistics.csv
-│       └── clean_weather_sensors.csv
-│
-├── notebooks/                           # Reproducible Gate 2 Jupyter Notebooks
-│   ├── 01_Mandi_Arrivals_Data_Rescue.ipynb
-│   ├── 02_Mandi_Master_Data_Rescue.ipynb
-│   ├── 03_Price_and_MSP_Data_Rescue.ipynb
-│   ├── 04_Transport_Logistics_Data_Rescue.ipynb
-│   └── 05_Weather_Sensors_Data_Rescue.ipynb
-│
-├── src/                                 # Production Python Rescue Modules
-│   └── rescue_arrivals.py
-│
-├── README.md                            # Project Overview & Execution Guide
-└── requirements.txt                     # Python Dependencies
-```
+### Business Logic & Formulas (Enforced)
+- **MSP Gap**: `msp_gap = msp - modal_price`
+- **Below MSP Flag**: `below_msp_flag = 1` when `modal_price < msp` else `0`
+- **Transit Delay**:
+  - `expected_hours = distance_km / 40.0`
+  - `delay_hours = transit_hours - expected_hours`
+  - `is_delayed_flag = 1` when `delay_hours > 2.0` else `0`
+- **Weather Constraint**: Weather data is strictly **sensor-level** and NOT mapped to Mandis. No joining or attribution to mandis is performed.
 
 ---
 
-## 📊 Gate 2 Data Engineering & Rescue Audit
+## 🤖 Dual Groq AI Architecture
 
-Our data rescue pipeline enforces **zero lazy row drops**, intelligent imputation, unit standardization, and key normalization across all datasets.
+AgroBuddy decouples AI responsibilities into two distinct, independently configurable models:
 
-### Dataset 1: Mandi Arrivals (`track3_mandi_arrivals.csv`) — COMPLETED ✅
+| Component | Responsibility | Model Config Env | Mode | SQL Execution |
+| :--- | :--- | :--- | :--- | :--- |
+| **Model #1: Insight LLM** | Passive dashboard page intelligence (explains `InsightContext`) | `INSIGHT_MODEL` | Passive | No |
+| **Model #2: AgroBuddy AI Agent** | Active natural language query assistant (produces `VisualizationSpec`) | `AGENT_MODEL` | Active (LangGraph) | No (Calls Analytics APIs) |
 
-| Audit Metric | Raw State | Rescued / Standardized State | Rationale & Methodology |
-| :--- | :---: | :---: | :--- |
-| **Total Records** | 25,750 rows | **25,000 rows** | Removed 750 exact duplicate rows to prevent volume inflation (0 genuine data loss). |
-| **Missing Units** | 5,004 rows missing | **0 missing** | Extracted embedded unit strings from `arrival_quantity` text (e.g., `"415.88 qtl"`). |
-| **Crop Name Aliases** | 36 raw variants | **6 Canonical Categories** | Standardized Hindi (`गेहूं`), Punjabi (`Kanak`), and English (`Gehun`) to *Wheat, Rice, Cotton, Mustard, Maize, Sugarcane*. |
-| **Negative Outliers** | 1,233 rows negative | **1,233 corrected** | Fixed logging sign inversions using `abs()` and set `is_negative_anomaly = True`. |
-| **Volume Standardisation** | Mixed (`T`, `KG`, `Qtl`) | **5,597,535.54 Qtl** | Converted Tonnes (`x10`) and KGs (`/100`) to **Quintals (Qtl)**. |
-| **Date Format** | 5 pattern variants | **100% YYYY-MM-DD** | Parsed mixed date patterns into `ISO-8601 YYYY-MM-DD` with **0 NaNs**. |
-| **Missing Farmer Count**| 3,800 rows missing | **0 missing** | Imputed missing farmer counts using crop-wise median volume batch ratios (`arrival_qtl / median_ratio`). |
-| **Missing Variety** | 3,627 rows missing | **0 missing** | Imputed missing variety entries with `"Common"`. |
-
-### Dataset 2: Mandi Master (`track3_mandi_master.csv`) — COMPLETED ✅
-
-| Audit Metric | Raw State | Rescued / Standardized State | Rationale & Methodology |
-| :--- | :---: | :---: | :--- |
-| **Total Master Records** | 60 rows | **57 unique Mandi Master rows** | Deduplicated 3 duplicate primary key entries (`MANDI001`, `MANDI006`, `MANDI031`) to prevent SQL JOIN row multiplication. |
-| **Mandi Type Casing** | Mixed (`APMC`, `apmc`, `PRIVATE`, `Private`, `Direct`, `NaN`) | **3 Canonical Enums** (`APMC`, `Private`, `Direct`) | Normalized case variations and imputed 11 missing `mandi_type` entries with mode category (`APMC`). |
-| **Missing Location** | 4 missing districts, 4 missing states | **0 missing** | Imputed missing geographic attributes for 8 mandis via location lookup dictionary (0 master rows lost). |
-| **Missing Acreage** | 6 missing area rows | **0 missing** | Imputed missing `total_area_acres` using median acreage size of corresponding mandi type (~24-25 acres). |
-
-### Dataset 3: Wholesale Price & MSP (`track3_price_and_msp.json`) — COMPLETED ✅
-
-| Audit Metric | Raw State | Rescued / Standardized State | Rationale & Methodology |
-| :--- | :---: | :---: | :--- |
-| **Total Records** | 12,000 JSON records | **12,000 rows** | Preserved 100% of trading records without dropping any rows. |
-| **Price & Currency Clean**| Text with `₹`, `Rs.`, `INR`, `,`, `/-` | **100% Numeric Floats** | Stripped currency symbols and parsed double-precision price values across `min_price`, `max_price`, `modal_price`, `msp`. |
-| **Mandi ID Standardisation**| Unformatted (`M012`, `013`, `MANDI-050`) | **Canonical `MANDIxxx` Format** | Extracted numeric digits to standardize all mandi primary keys into `MANDI012`, `MANDI013`, `MANDI050`. |
-| **Crop Name Aliases** | 36 raw variants | **6 Canonical Categories** | Mapped English, Vernacular, and Hindi aliases to *Wheat, Rice, Cotton, Mustard, Maize, Sugarcane*. |
-| **Date Format** | Mixed patterns (`2026/07/26`, `09.01.2026`, `08-Aug-2026`) | **100% YYYY-MM-DD** | Parsed mixed date strings into `ISO-8601 YYYY-MM-DD` with **0 missing dates**. |
-| **Geographic Imputation** | 1,235 missing mandi IDs, 773 missing districts | **172 missing mandi IDs, 82 missing districts** | Imputed missing locations cross-referencing `clean_mandi_master.csv` lookup maps. |
-| **Price Crash Analytics** | Uncalculated raw prices | **3,667 below-MSP alerts** | Derived `msp_gap` (`msp - modal_price`) and created `below_msp_flag` for analytics marts. |
-
-### Dataset 4: Transport & Logistics (`track3_transport_logistics.csv`) — COMPLETED ✅
-
-| Audit Metric | Raw State | Rescued / Standardized State | Rationale & Methodology |
-| :--- | :---: | :---: | :--- |
-| **Total Records** | 10,400 rows | **10,000 unique trips** | Deduplicated 400 exact duplicate trip records (0 data loss). |
-| **Negative Transit Hours** | 563 negative entries | **563 corrected** | Fixed sign inversion logging anomalies using `abs()` and set `is_negative_anomaly = 1`. |
-| **Distance Unit Standardisation** | Mixed (`km` vs `miles`) | **5,870,414.06 KM** | Converted 1,497 miles records to kilometers (`x 1.60934`) and standardized unit to `km`. |
-| **Vehicle Registration Format** | Mixed spacing, casing, dashes | **100% RTO Format (`SS-DD-XX-NNNN`)** | Standardized Indian vehicle numbers into canonical RTO format (`UP-50-BC-6882`). |
-| **Mandi ID Standardisation** | Unformatted (`mandi_019`, `038`, `mandi041`) | **Canonical `MANDIxxx` Format** | Normalized primary keys into `MANDI019`, `MANDI038`, `MANDI041`. |
-| **Timestamp Reconstruction** | 1,006 missing arrival timestamps | **100 missing timestamps** | Reconstructed missing arrival timestamps (`departure_time + transit_hours`) and missing transit hours. |
-| **Logistics Delay Analytics** | Uncalculated delays | **192 delayed trip alerts** | Derived `expected_hours` (`dist / 40 km/h`) and created `is_delayed_flag` for bottleneck analytics. |
-
-### Dataset 5: Weather Sensors (`track3_weather_sensors.xlsx`) — COMPLETED ✅
-
-| Audit Metric | Raw State | Rescued / Standardized State | Rationale & Methodology |
-| :--- | :---: | :---: | :--- |
-| **Total Records** | 15,000 rows | **15,000 rows** | Preserved 100% of weather sensor telemetry readings. |
-| **Temperature Unit Standardisation** | Mixed (`°C`, `°F`, `Celsius`, `Fahrenheit`) | **100% Celsius (`15.0°C` to `40.0°C`)** | Converted 6,020 Fahrenheit records (`(F - 32) * 5/9`) and inferred missing units for values > 50°F. |
-| **Rainfall Unit Standardisation** | Mixed (`mm` vs `inches`) | **355,722.41 MM** | Converted 3,796 inches records to millimeters (`x 25.4`) and standardized unit to `mm`. |
-| **Negative Rainfall Anomalies** | 1,518 negative entries | **1,518 corrected** | Fixed sign inversion logging errors using `abs()` and set `is_negative_rainfall_anomaly = 1`. |
-| **Timestamp Timezone Standardisation** | Mixed (`UTC` vs `IST`) | **100% IST (`0 missing timestamps`)** | Parsed 5,141 UTC timestamps (`UTC + 5:30`) and imputed 1,555 missing timestamps via sensor-wise ffill/bfill. |
-| **Humidity Imputation** | 1,500 missing humidity rows | **0 missing humidity rows** | Imputed missing relative humidity percentage using sensor-wise median values. |
-| **Extreme Weather Analytics** | Uncalculated risk flags | **2,883 Heatwaves, 5,714 Heavy Rains** | Flagged `is_heatwave_flag` (> 35°C) and `is_heavy_rain_flag` (> 30 mm) for supply chain risk modeling. |
+> **Graceful AI Degradation**: If Groq API keys are unconfigured or unavailable, AI endpoints gracefully return deterministic structured fallbacks (`AI_PROVIDER_UNAVAILABLE`) while all core dashboard analytics remain 100% operational.
 
 ---
 
-## 🛠️ Datathon Progress Scorecard
-
-- [x] **Phase 1: Dataset 1 — Mandi Arrivals Data Rescue (`01_Mandi_Arrivals_Data_Rescue.ipynb`)**
-- [x] **Phase 2: Dataset 2 — Mandi Master Data Rescue (`02_Mandi_Master_Data_Rescue.ipynb`)**
-- [x] **Phase 3: Dataset 3 — Price & MSP Data Rescue (`03_Price_and_MSP_Data_Rescue.ipynb`)**
-- [x] **Phase 4: Dataset 4 — Transport Logistics Data Rescue (`04_Transport_Logistics_Data_Rescue.ipynb`)**
-- [x] **Phase 5: Dataset 5 — Weather Sensors Data Rescue (`05_Weather_Sensors_Data_Rescue.ipynb`)**
-- [ ] **Phase 6: Master Automated Pipeline (`src/run_pipeline.py`)**
-
----
-
-## 💻 How to Run and Reproduce
+## ⚡ Quick Start & Installation
 
 ### 1. Environment Setup
-Clone the repository and install requirements:
+Create a Python virtual environment and install dependencies:
 ```bash
-git clone https://github.com/shayan-codes-405/agro-buddy.git
-pip install -r requirements.txt
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt  # Or install fastapi uvicorn duckdb pydantic pydantic-settings pandas groq langgraph pytest python-dotenv httpx
 ```
 
-### 2. Run Data Rescue Notebooks
-Open VS Code or Jupyter Lab and execute the notebooks top-to-bottom:
+### 2. Configure Environment Variables
+Copy `.env.example` to `.env` and provide your Groq API key:
 ```bash
-jupyter notebook notebooks/01_Mandi_Arrivals_Data_Rescue.ipynb
-jupyter notebook notebooks/02_Mandi_Master_Data_Rescue.ipynb
-jupyter notebook notebooks/03_Price_and_MSP_Data_Rescue.ipynb
-jupyter notebook notebooks/04_Transport_Logistics_Data_Rescue.ipynb
-jupyter notebook notebooks/05_Weather_Sensors_Data_Rescue.ipynb
+cp .env.example .env
+```
+Edit `.env`:
+```env
+GROQ_API_KEY=your_groq_api_key_here
+INSIGHT_MODEL=llama-3.3-70b-versatile
+AGENT_MODEL=llama-3.3-70b-versatile
 ```
 
-### 3. Verify Clean Outputs
-The processed clean datasets will be generated automatically under `data/processed/`:
-- `data/processed/clean_mandi_arrivals.csv`
-- `data/processed/clean_mandi_master.csv`
-- `data/processed/clean_price_and_msp.csv`
-- `data/processed/clean_transport_logistics.csv`
-- `data/processed/clean_weather_sensors.csv`
+### 3. Initialize DuckDB Database
+Run the deterministic database initialization script to ingest processed CSVs into `duckdb/agrobuddy.duckdb`:
+```bash
+python -m backend.scripts.initialize_db
+```
+
+### 4. Start FastAPI Server
+Launch the backend development server using uvicorn:
+```bash
+uvicorn backend.app.main:app --reload --port 8000
+```
+Interactive API Swagger Docs: `http://localhost:8000/docs`
 
 ---
 
-## 🧱 Technology Stack
-- **Data Engineering**: Python 3.10+, Pandas, NumPy, Regex
-- **Analytical Storage**: DuckDB / Apache Parquet
-- **Backend API**: FastAPI (REST endpoints)
-- **Frontend Dashboard**: Next.js / TypeScript / Recharts
-- **AI Analyst**: Natural Language to SQL Semantic Query Layer
+## 🧪 Running Automated Tests
+
+Run the complete test suite (covering database schemas, formula accuracy, risk determinism, API schemas, and AI fallbacks):
+```bash
+pytest backend/tests/ -v
+```
+
+---
+
+## 📌 API Endpoint Directory
+
+### 1. Common Filters & Metadata
+- `GET /api/v1/filters`: Retrieve global filter options (crops, mandis, districts, states, mandi types).
+
+### 2. Command Center
+- `GET /api/v1/overview`: System-wide KPIs, top arrival crops, price pressure mandis, logistics bottlenecks, and alert summaries.
+
+### 3. Supply Pulse (Arrivals)
+- `GET /api/v1/arrivals/trend`: Daily arrival volume and farmer count time-series.
+- `GET /api/v1/arrivals/by-crop`: Crop breakdown with percentage of total arrivals.
+- `GET /api/v1/arrivals/by-mandi`: Mandi-level arrival volume and farmer efficiency.
+
+### 4. Farmer Price Watch
+- `GET /api/v1/prices/msp`: Modal price vs MSP time-series data.
+- `GET /api/v1/prices/pressure`: Crop and mandi level MSP pressure rankings.
+
+### 5. Mandi Master & Drill-down
+- `GET /api/v1/mandis`: List all mandi master entries.
+- `GET /api/v1/mandis/{mandi_id}`: Comprehensive mandi detail (arrivals, prices, logistics).
+- `GET /api/v1/mandis/{mandi_id}/market-state`: Unified operational market state for drill-down.
+
+### 6. Logistics Command
+- `GET /api/v1/logistics/summary`: Logistics network KPIs (transit hours, delay hours, delayed trip %).
+- `GET /api/v1/logistics/delays`: Time-series of daily delay hours and delay percentages.
+- `GET /api/v1/logistics/by-mandi`: Mandi and route-level delay analytics.
+
+### 7. Weather & Operations
+- `GET /api/v1/weather/trend`: Sensor-level weather time-series.
+- `GET /api/v1/weather/extremes`: Heatwaves, heavy rainfall events, and temperature extremes.
+- `GET /api/v1/weather/sensors`: Sensor status list with active alert flags.
+
+### 8. Mandi Risk Engine
+- `GET /api/v1/risk/mandis`: Ranked mandi vulnerability risk scores (combining price pressure, arrival instability, logistics delay).
+- `GET /api/v1/risk/mandis/{mandi_id}`: Single mandi risk breakdown.
+
+### 9. AI Intelligence
+- `POST /api/v1/insights`: Request passive page insights (Model #1).
+- `POST /api/v1/agent/query`: Execute natural language data queries (Model #2 -> `VisualizationSpec`).
+
+### 10. Forecast & Planning (Contract)
+- `GET /api/v1/forecast/arrivals`: Horizon forecasting API contract.
