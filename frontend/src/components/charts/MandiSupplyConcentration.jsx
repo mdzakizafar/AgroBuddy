@@ -29,14 +29,14 @@ export default function MandiSupplyConcentration({ mandis = [], onSelectMandi, o
         </div>
 
         {/* Top 5 Cumulative Insight Banner */}
-        <div className="mt-3 p-2.5 bg-[#F4F6EC] rounded-xl border border-[#5B7B10]/15 flex items-center justify-between gap-3 text-xs">
+        <div className="mt-3 p-2.5 bg-[#F4F6EC] rounded-xl border border-[#5B7B10]/15 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 text-xs">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-[#84CC16] animate-pulse" />
             <span className="text-[11px] font-semibold text-[#1F2E0A]">
               Top 5 Hubs Process <strong className="text-[#364E00] font-extrabold">{totalTop5Share.toFixed(1)}%</strong> of State Output
             </span>
           </div>
-          <div className="w-24 bg-[#EBF0DC] h-2 rounded-full overflow-hidden shrink-0 border border-[#5B7B10]/10">
+          <div className="w-full sm:w-24 bg-[#EBF0DC] h-2 rounded-full overflow-hidden shrink-0 border border-[#5B7B10]/10">
             <div 
               className="h-full bg-gradient-to-r from-[#5B7B10] to-[#84CC16] rounded-full" 
               style={{ width: `${Math.min(100, totalTop5Share)}%` }}

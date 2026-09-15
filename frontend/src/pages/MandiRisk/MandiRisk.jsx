@@ -213,7 +213,7 @@ export default function MandiRisk() {
             </h3>
           </div>
 
-          <div className="grid grid-cols-3 gap-3 text-center">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-center">
             <div className="bg-red-50/60 border border-red-100 rounded-xl p-3">
               <span className="text-[10px] text-red-700 font-bold uppercase tracking-wider">Price Pressure</span>
               <div className="text-xl font-bold text-red-950 font-mono mt-1">

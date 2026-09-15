@@ -76,7 +76,7 @@ export default function WeatherEventCalendar({ data = [], isLoading = false, tot
         </div>
 
         {/* Legend */}
-        <div className="flex items-center gap-4 text-[11px] text-[#6B7C4B] bg-[#F4F6EC] px-3 py-1.5 rounded-lg border border-[#5B7B10]/15">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-[10px] sm:text-[11px] text-[#6B7C4B] bg-[#F4F6EC] px-2.5 sm:px-3 py-1.5 rounded-lg border border-[#5B7B10]/15">
           <div className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-[#D97706] inline-block shadow-[0_0_6px_rgba(217,119,6,0.6)]" />
             <span className="font-semibold text-[#1F2E0A]">Heatwave Day</span>

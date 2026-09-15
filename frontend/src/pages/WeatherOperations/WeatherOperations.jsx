@@ -240,7 +240,7 @@ export default function WeatherOperations() {
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-[#DC2626]/10 text-[#DC2626] border border-[#DC2626]/20">
               PEAK TEMP: {extremes.max_temperature_c != null ? `${extremes.max_temperature_c.toFixed(1)}°C` : '40.0°C'}
             </span>
