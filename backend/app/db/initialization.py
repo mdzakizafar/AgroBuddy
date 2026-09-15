@@ -1,10 +1,8 @@
 import os
 import duckdb
-import pandas as pd
 from pathlib import Path
 from backend.app.core.config import settings
 from backend.app.core.logging import logger
-from backend.app.utils.normalization import normalize_district
 
 
 def init_db(data_dir: Path = settings.DATA_DIR, db_path: Path = settings.DUCKDB_PATH):
@@ -15,16 +13,11 @@ def init_db(data_dir: Path = settings.DATA_DIR, db_path: Path = settings.DUCKDB_
     
     conn = duckdb.connect(str(db_path), read_only=False)
     try:
-        # 1. dim_mandi (Normalized Districts)
+        # 1. dim_mandi
         mandi_csv = data_dir / "clean_mandi_master.csv"
         if mandi_csv.exists():
             logger.info(f"Loading dim_mandi from {mandi_csv}")
-            df_mandi = pd.read_csv(mandi_csv)
-            if "district" in df_mandi.columns:
-                df_mandi["district"] = df_mandi["district"].apply(normalize_district)
-            
-            conn.register("df_mandi_temp", df_mandi)
-            conn.execute("""
+            conn.execute(f"""
                 CREATE OR REPLACE TABLE dim_mandi AS 
                 SELECT 
                     CAST(mandi_id AS VARCHAR) AS mandi_id,
@@ -33,9 +26,8 @@ def init_db(data_dir: Path = settings.DATA_DIR, db_path: Path = settings.DUCKDB_
                     CAST(state AS VARCHAR) AS state,
                     CAST(mandi_type AS VARCHAR) AS mandi_type,
                     CAST(total_area_acres AS DOUBLE) AS total_area_acres
-                FROM df_mandi_temp;
+                FROM read_csv_auto('{mandi_csv.as_posix()}');
             """)
-            conn.unregister("df_mandi_temp")
         else:
             logger.warning(f"File not found: {mandi_csv}")
 
@@ -60,16 +52,11 @@ def init_db(data_dir: Path = settings.DATA_DIR, db_path: Path = settings.DUCKDB_
         else:
             logger.warning(f"File not found: {arrivals_csv}")
 
-        # 3. fact_prices (Normalized Districts & Formula Enforcement)
+        # 3. fact_prices
         prices_csv = data_dir / "clean_price_and_msp.csv"
         if prices_csv.exists():
             logger.info(f"Loading fact_prices from {prices_csv}")
-            df_prices = pd.read_csv(prices_csv)
-            if "district" in df_prices.columns:
-                df_prices["district"] = df_prices["district"].apply(normalize_district)
-            
-            conn.register("df_prices_temp", df_prices)
-            conn.execute("""
+            conn.execute(f"""
                 CREATE OR REPLACE TABLE fact_prices AS 
                 SELECT 
                     CAST(record_id AS VARCHAR) AS record_id,
@@ -83,9 +70,8 @@ def init_db(data_dir: Path = settings.DATA_DIR, db_path: Path = settings.DUCKDB_
                     CAST(msp AS DOUBLE) AS msp,
                     COALESCE(CAST(msp_gap AS DOUBLE), CAST(msp AS DOUBLE) - CAST(modal_price AS DOUBLE)) AS msp_gap,
                     CASE WHEN CAST(modal_price AS DOUBLE) < CAST(msp AS DOUBLE) THEN 1 ELSE 0 END AS below_msp_flag
-                FROM df_prices_temp;
+                FROM read_csv_auto('{prices_csv.as_posix()}');
             """)
-            conn.unregister("df_prices_temp")
         else:
             logger.warning(f"File not found: {prices_csv}")
 

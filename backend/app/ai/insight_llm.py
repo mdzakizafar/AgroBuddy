@@ -32,31 +32,15 @@ Structured Analytics Context:
 
 Please provide structured dashboard insights.
 """
-            candidate_models = [self.model, "qwen/qwen3.6-27b", "qwen/qwen3.8-27b", "groq/compound"]
-            # Deduplicate preserving order
-            models_to_try = list(dict.fromkeys(candidate_models))
-
-            completion = None
-            last_err = None
-            for model_name in models_to_try:
-                try:
-                    completion = client.chat.completions.create(
-                        model=model_name,
-                        messages=[
-                            {"role": "system", "content": INSIGHT_SYSTEM_PROMPT},
-                            {"role": "user", "content": user_content}
-                        ],
-                        temperature=0.2,
-                        response_format={"type": "json_object"}
-                    )
-                    if completion:
-                        break
-                except Exception as model_e:
-                    last_err = model_e
-                    logger.warning(f"Groq model {model_name} failed: {str(model_e)}. Trying next candidate model...")
-
-            if not completion:
-                raise last_err or Exception("All candidate Groq models failed.")
+            completion = client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": INSIGHT_SYSTEM_PROMPT},
+                    {"role": "user", "content": user_content}
+                ],
+                temperature=0.2,
+                response_format={"type": "json_object"}
+            )
 
             response_content = completion.choices[0].message.content
             parsed = json.loads(response_content)
