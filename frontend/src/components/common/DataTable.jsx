@@ -8,7 +8,7 @@ export default function DataTable({ columns, data, pageSize = 8, onRowClick }) {
 
   if (!data || data.length === 0) {
     return (
-      <div className="p-8 text-center text-xs font-semibold text-[#7A8F59] bg-[#F4F6EC]/50 rounded-xl border border-dashed border-[#5B7B10]/20">
+      <div className="p-6 sm:p-8 text-center text-xs font-semibold text-[#7A8F59] bg-[#F4F6EC]/50 rounded-xl border border-dashed border-[#5B7B10]/20">
         No records available under current filter selection.
       </div>
     );
@@ -39,20 +39,20 @@ export default function DataTable({ columns, data, pageSize = 8, onRowClick }) {
   const paginatedData = sortedData.slice(startIndex, startIndex + pageSize);
 
   return (
-    <div className="space-y-3">
-      <div className="overflow-x-auto rounded-xl border border-[#5B7B10]/15">
-        <table className="w-full text-left text-xs">
+    <div className="space-y-3 w-full">
+      <div className="overflow-x-auto rounded-xl border border-[#5B7B10]/15 w-full">
+        <table className="w-full text-left text-xs min-w-[540px] sm:min-w-full">
           <thead className="bg-[#F4F6EC] text-[#364E00] font-bold uppercase tracking-wider border-b border-[#5B7B10]/15">
             <tr>
               {columns.map((col) => (
                 <th
                   key={col.key}
                   onClick={() => col.sortable !== false && handleSort(col.key)}
-                  className={`p-3.5 select-none ${col.sortable !== false ? 'cursor-pointer hover:bg-[#E9EDDA]' : ''}`}
+                  className={`px-3 py-2.5 sm:p-3.5 select-none whitespace-nowrap ${col.sortable !== false ? 'cursor-pointer hover:bg-[#E9EDDA]' : ''}`}
                 >
                   <div className="flex items-center gap-1.5">
                     <span>{col.header}</span>
-                    {col.sortable !== false && <ArrowUpDown className="w-3 h-3 opacity-60" />}
+                    {col.sortable !== false && <ArrowUpDown className="w-3 h-3 opacity-60 shrink-0" />}
                   </div>
                 </th>
               ))}
@@ -68,7 +68,7 @@ export default function DataTable({ columns, data, pageSize = 8, onRowClick }) {
                 }`}
               >
                 {columns.map((col) => (
-                  <td key={col.key} className="p-3.5 text-[#1F2E0A] font-medium">
+                  <td key={col.key} className="px-3 py-2.5 sm:p-3.5 text-[#1F2E0A] font-medium whitespace-nowrap">
                     {col.render ? col.render(row[col.key], row) : (row[col.key] !== undefined && row[col.key] !== null ? row[col.key] : '—')}
                   </td>
                 ))}
@@ -80,25 +80,27 @@ export default function DataTable({ columns, data, pageSize = 8, onRowClick }) {
 
       {/* Pagination Footer */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between text-xs text-[#6B7C4B] px-1">
-          <span>
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-[#6B7C4B] px-1">
+          <span className="text-[11px] sm:text-xs">
             Showing {startIndex + 1}–{Math.min(startIndex + pageSize, data.length)} of {data.length} records
           </span>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="p-1.5 rounded-lg bg-[#F4F6EC] hover:bg-[#E9EDDA] disabled:opacity-40 transition-colors"
+              className="p-1.5 rounded-lg bg-[#F4F6EC] hover:bg-[#E9EDDA] disabled:opacity-40 transition-colors cursor-pointer"
+              aria-label="Previous Page"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <span className="font-bold text-[#1F2E0A]">
+            <span className="font-bold text-[#1F2E0A] text-xs">
               {currentPage} / {totalPages}
             </span>
             <button
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
-              className="p-1.5 rounded-lg bg-[#F4F6EC] hover:bg-[#E9EDDA] disabled:opacity-40 transition-colors"
+              className="p-1.5 rounded-lg bg-[#F4F6EC] hover:bg-[#E9EDDA] disabled:opacity-40 transition-colors cursor-pointer"
+              aria-label="Next Page"
             >
               <ChevronRight className="w-4 h-4" />
             </button>

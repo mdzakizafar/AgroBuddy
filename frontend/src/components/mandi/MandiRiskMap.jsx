@@ -315,10 +315,10 @@ export default function MandiRiskMap({ mandis = [], onSelectMandi }) {
         </div>
 
         {/* Operational Lens Selector Buttons */}
-        <div className="flex flex-wrap items-center gap-1.5 bg-[#F4F6EC] p-1 rounded-xl border border-[#5B7B10]/15 text-xs">
+        <div className="flex items-center gap-1.5 bg-[#F4F6EC] p-1 rounded-xl border border-[#5B7B10]/15 text-xs overflow-x-auto max-w-full">
           <button
             onClick={() => setActiveLens('drivers')}
-            className={`px-3 py-1.5 rounded-lg font-bold transition-all flex items-center gap-1.5 text-[11px] ${
+            className={`px-2.5 sm:px-3 py-1.5 rounded-lg font-bold transition-all flex items-center gap-1.5 text-[11px] whitespace-nowrap cursor-pointer ${
               activeLens === 'drivers'
                 ? 'bg-[#5B7B10] text-white shadow-xs'
                 : 'text-[#526633] hover:text-[#1F2E0A] hover:bg-white/60'
@@ -330,7 +330,7 @@ export default function MandiRiskMap({ mandis = [], onSelectMandi }) {
 
           <button
             onClick={() => setActiveLens('price')}
-            className={`px-2.5 py-1.5 rounded-lg font-bold transition-all flex items-center gap-1 text-[11px] ${
+            className={`px-2.5 py-1.5 rounded-lg font-bold transition-all flex items-center gap-1 text-[11px] whitespace-nowrap cursor-pointer ${
               activeLens === 'price'
                 ? 'bg-[#DC2626] text-white shadow-xs'
                 : 'text-red-700 hover:bg-red-50'
@@ -342,7 +342,7 @@ export default function MandiRiskMap({ mandis = [], onSelectMandi }) {
 
           <button
             onClick={() => setActiveLens('arrival')}
-            className={`px-2.5 py-1.5 rounded-lg font-bold transition-all flex items-center gap-1 text-[11px] ${
+            className={`px-2.5 py-1.5 rounded-lg font-bold transition-all flex items-center gap-1 text-[11px] whitespace-nowrap cursor-pointer ${
               activeLens === 'arrival'
                 ? 'bg-[#D97706] text-white shadow-xs'
                 : 'text-amber-700 hover:bg-amber-50'
@@ -354,7 +354,7 @@ export default function MandiRiskMap({ mandis = [], onSelectMandi }) {
 
           <button
             onClick={() => setActiveLens('logistics')}
-            className={`px-2.5 py-1.5 rounded-lg font-bold transition-all flex items-center gap-1 text-[11px] ${
+            className={`px-2.5 py-1.5 rounded-lg font-bold transition-all flex items-center gap-1 text-[11px] whitespace-nowrap cursor-pointer ${
               activeLens === 'logistics'
                 ? 'bg-[#2563EB] text-white shadow-xs'
                 : 'text-blue-700 hover:bg-blue-50'
@@ -366,7 +366,7 @@ export default function MandiRiskMap({ mandis = [], onSelectMandi }) {
 
           <button
             onClick={() => setActiveLens('composite')}
-            className={`px-2.5 py-1.5 rounded-lg font-bold transition-all text-[11px] ${
+            className={`px-2.5 py-1.5 rounded-lg font-bold transition-all text-[11px] whitespace-nowrap cursor-pointer ${
               activeLens === 'composite'
                 ? 'bg-[#1F2E0A] text-white shadow-xs'
                 : 'text-[#6B7C4B] hover:text-[#1F2E0A] hover:bg-white/60'

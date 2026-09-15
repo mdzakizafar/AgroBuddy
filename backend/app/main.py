@@ -65,6 +65,28 @@ app.include_router(agent.router, prefix=v1_prefix, tags=["AgroBuddy AI Agent"])
 app.include_router(forecast.router, prefix=v1_prefix, tags=["Forecast & Planning"])
 
 
+from pathlib import Path
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse, JSONResponse
+
+# Serve built production frontend if frontend/dist exists (Unified Single-Server Mode)
+dist_dir = settings.BASE_DIR / "frontend" / "dist"
+if dist_dir.exists():
+    assets_dir = dist_dir / "assets"
+    if assets_dir.exists():
+        app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
+
+    @app.get("/{full_path:path}", include_in_schema=False)
+    async def serve_spa(full_path: str):
+        # Don't intercept API or OpenAPI routes
+        if full_path.startswith("api/") or full_path.startswith("docs") or full_path.startswith("health") or full_path.startswith("openapi.json"):
+            return JSONResponse(status_code=404, content={"error": "Not Found"})
+        file_path = dist_dir / full_path
+        if file_path.is_file():
+            return FileResponse(file_path)
+        return FileResponse(dist_dir / "index.html")
+
+
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     logger.error(f"Global unhandled exception on {request.url}: {str(exc)}", exc_info=True)
