@@ -1,18 +1,21 @@
 import React from 'react';
 import ReactECharts from 'echarts-for-react';
 
+const DEFAULT_COLORS = ['#5B7B10', '#D97706', '#2563EB', '#DC2626', '#84CC16', '#7C3AED'];
+
 export default function BarChart({
   data,
   xAxisKey,
   xKey,
   yKey,
   series = [],
-  height = '260px',
+  height = '290px',
   horizontal = false,
   title,
   barColor,
   showLabel = false,
-  valueFormatter
+  valueFormatter,
+  enableZoom = true
 }) {
   if (!data || data.length === 0) return null;
 
@@ -26,116 +29,155 @@ export default function BarChart({
     seriesConfigs = [{ field: 'val', label: 'Value' }];
   }
 
-  const defaultFormatter = (val) => {
+  // Format metric value according to field context
+  const formatMetricValue = (val, fieldName = '', seriesName = '') => {
+    if (val == null || isNaN(val)) return '—';
     if (typeof valueFormatter === 'function') return valueFormatter(val);
+
+    const nameLower = `${fieldName} ${seriesName}`.toLowerCase();
+
+    if (nameLower.includes('price') || nameLower.includes('msp') || nameLower.includes('cost') || nameLower.includes('revenue')) {
+      return `₹${Number(val).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 1 })} / Qtl`;
+    }
+    if (nameLower.includes('arrival') || nameLower.includes('volume') || nameLower.includes('quintal') || nameLower.includes('qtl')) {
+      return `${Number(val).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 1 })} Qtl`;
+    }
+    if (nameLower.includes('rate') || nameLower.includes('percent') || nameLower.includes('%') || nameLower.includes('ratio')) {
+      return `${Number(val).toFixed(1)}%`;
+    }
+    if (nameLower.includes('temp') || nameLower.includes('°c')) {
+      return `${Number(val).toFixed(1)}°C`;
+    }
+    if (nameLower.includes('rain') || nameLower.includes('precipitation') || nameLower.includes('mm')) {
+      return `${Number(val).toFixed(1)} mm`;
+    }
+    if (nameLower.includes('delay') || nameLower.includes('transit') || nameLower.includes('hour')) {
+      return `${Number(val).toFixed(1)} hrs`;
+    }
+    if (nameLower.includes('risk') || nameLower.includes('score')) {
+      return `${Number(val).toFixed(1)} / 100`;
+    }
+
     if (typeof val === 'number') {
-      if (Math.abs(val) >= 1000000) return (val / 1000000).toFixed(1) + 'M';
-      if (Math.abs(val) >= 1000) return (val / 1000).toFixed(0) + 'k';
-      return val.toLocaleString();
+      if (Math.abs(val) >= 1000000) return `${(val / 1000000).toFixed(1)}M`;
+      if (Math.abs(val) >= 1000) return `${(val / 1000).toFixed(1)}k`;
+      return Number(val).toLocaleString(undefined, { maximumFractionDigits: 1 });
     }
     return val;
   };
 
-  const seriesOptions = seriesConfigs.map((s, idx) => ({
-    name: s.label || s.field,
-    type: 'bar',
-    barMaxWidth: 26,
-    label: {
-      show: showLabel || s.showLabel,
-      position: horizontal ? 'right' : 'top',
-      color: '#364E00',
-      fontSize: 10,
-      fontWeight: 'bold',
-      fontFamily: 'Plus Jakarta Sans',
-      formatter: (params) => defaultFormatter(params.value)
-    },
-    itemStyle: {
-      borderRadius: horizontal ? [0, 6, 6, 0] : [6, 6, 0, 0],
-      color: (params) => {
-        const item = data[params.dataIndex];
-        if (item && item.color) return item.color;
-        if (typeof barColor === 'function') return barColor(params, item);
-        if (Array.isArray(barColor)) return barColor[params.dataIndex % barColor.length];
-        if (s.color || barColor) return s.color || barColor;
-        return idx === 0
-          ? {
-              type: 'linear',
-              x: 0,
-              y: 0,
-              x2: horizontal ? 1 : 0,
-              y2: horizontal ? 0 : 1,
-              colorStops: [
-                { offset: 0, color: '#EAB308' },
-                { offset: 1, color: '#5B7B10' }
-              ]
-            }
-          : {
-              type: 'linear',
-              x: 0,
-              y: 0,
-              x2: horizontal ? 1 : 0,
-              y2: horizontal ? 0 : 1,
-              colorStops: [
-                { offset: 0, color: '#84CC16' },
-                { offset: 1, color: '#364E00' }
-              ]
-            };
-      }
-    },
-    data: data.map((d) => d[s.field])
-  }));
+  // Build series options ensuring legend colors match bar colors 1:1
+  const seriesColors = seriesConfigs.map((s, idx) => s.color || (Array.isArray(barColor) ? barColor[idx % barColor.length] : (typeof barColor === 'string' ? barColor : DEFAULT_COLORS[idx % DEFAULT_COLORS.length])));
+
+  const seriesOptions = seriesConfigs.map((s, idx) => {
+    const sColor = seriesColors[idx];
+    return {
+      name: s.label || s.field,
+      type: 'bar',
+      barMaxWidth: 28,
+      itemStyle: {
+        color: sColor,
+        borderRadius: horizontal ? [0, 4, 4, 0] : [4, 4, 0, 0]
+      },
+      label: {
+        show: showLabel || s.showLabel,
+        position: horizontal ? 'right' : 'top',
+        color: '#364E00',
+        fontSize: 10,
+        fontWeight: 'bold',
+        fontFamily: 'Outfit, sans-serif',
+        formatter: (params) => formatMetricValue(params.value, s.field, s.label)
+      },
+      data: data.map((d) => d[s.field])
+    };
+  });
+
+  const shouldRotate = !horizontal && categories.length > 4;
 
   const option = {
     backgroundColor: 'transparent',
+    color: seriesColors,
     tooltip: {
       trigger: 'axis',
       backgroundColor: '#FFFFFF',
-      borderColor: 'rgba(91, 123, 16, 0.25)',
-      textStyle: { color: '#1F2E0A', fontSize: 12, fontFamily: 'Plus Jakarta Sans' },
+      borderColor: '#E2E8F0',
+      borderWidth: 1,
+      padding: [10, 14],
+      shadowBlur: 12,
+      shadowColor: 'rgba(0, 0, 0, 0.08)',
+      textStyle: { color: '#0F172A', fontSize: 12, fontFamily: 'Outfit, sans-serif' },
       formatter: (params) => {
         if (!params || params.length === 0) return '';
-        const categoryName = params[0].name;
-        let html = `<div style="font-weight: 700; color: #364E00; margin-bottom: 4px; font-size: 13px;">${categoryName}</div>`;
+        const rawCategory = params[0].name || '';
+        let html = `
+          <div style="font-family: inherit; min-width: 190px;">
+            <div style="font-weight: 700; color: #1E293B; margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid #F1F5F9; font-size: 12px;">
+              ${rawCategory}
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+        `;
         params.forEach((p) => {
-          const valFormatted = defaultFormatter(p.value);
+          const cfg = seriesConfigs.find((s) => (s.label || s.field) === p.seriesName) || {};
+          const valFormatted = formatMetricValue(p.value, cfg.field, p.seriesName);
+          const dotColor = typeof p.color === 'string' ? p.color : (p.color?.colorStops?.[0]?.color || '#5B7B10');
           html += `
-            <div style="display: flex; justify-content: space-between; gap: 14px; align-items: center; margin-bottom: 2px;">
-              <span style="color: #6B7C4B; font-size: 11px;">${p.seriesName}:</span>
-              <strong style="color: #5B7B10; font-size: 12px;">${valFormatted}</strong>
+            <div style="display: flex; justify-content: space-between; gap: 14px; align-items: center; font-size: 11px;">
+              <span style="color: #64748B; display: flex; align-items: center; gap: 5px;">
+                <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: ${dotColor};"></span>
+                ${p.seriesName}:
+              </span>
+              <strong style="color: #0F172A; font-weight: 600;">${valFormatted}</strong>
             </div>
           `;
         });
+        html += `</div></div>`;
         return html;
       }
     },
-    legend:
-      seriesOptions.length > 1
-        ? { top: 0, textStyle: { color: '#526633', fontSize: 11 } }
-        : undefined,
+    legend: {
+      top: 0,
+      right: '2%',
+      icon: 'roundRect',
+      itemWidth: 10,
+      itemHeight: 10,
+      textStyle: { color: '#475569', fontSize: 11, fontWeight: 500, fontFamily: 'Outfit, sans-serif' }
+    },
     grid: {
-      top: seriesOptions.length > 1 ? 30 : 15,
+      top: seriesConfigs.length > 1 ? 30 : 20,
       left: 10,
-      right: horizontal && showLabel ? 65 : 20,
-      bottom: 20,
+      right: horizontal && showLabel ? 65 : 15,
+      bottom: !horizontal ? (shouldRotate ? 45 : 20) : 20,
       containLabel: true
     },
     [horizontal ? 'yAxis' : 'xAxis']: {
       type: 'category',
       data: categories,
-      axisLine: { lineStyle: { color: 'rgba(91, 123, 16, 0.15)' } },
-      axisLabel: { color: '#364E00', fontSize: 11, fontWeight: '600', interval: 0 }
+      axisLine: { lineStyle: { color: '#E2E8F0' } },
+      axisTick: { show: false },
+      axisLabel: {
+        color: '#475569',
+        fontSize: 10,
+        fontWeight: 500,
+        interval: 0,
+        rotate: shouldRotate ? 28 : 0,
+        overflow: 'truncate',
+        width: shouldRotate ? 80 : 100,
+        ellipsis: '...'
+      }
     },
     [horizontal ? 'xAxis' : 'yAxis']: {
       type: 'value',
-      splitLine: { lineStyle: { color: 'rgba(91, 123, 16, 0.08)', type: 'dashed' } },
+      splitLine: { lineStyle: { color: '#F1F5F9', type: 'dashed' } },
+      axisLine: { show: false },
+      axisTick: { show: false },
       axisLabel: {
-        color: '#6B7C4B',
+        color: '#64748B',
         fontSize: 10,
-        formatter: (val) => defaultFormatter(val)
+        formatter: (val) => formatMetricValue(val)
       }
     },
     series: seriesOptions
   };
 
-  return <ReactECharts option={option} style={{ height, width: '100%' }} />;
+  return <ReactECharts option={option} style={{ height, width: '100%' }} notMerge={true} />;
 }

@@ -130,10 +130,10 @@ export default function CommandCenter() {
       <AIInsightPanel page="command_center" filters={filters} />
 
       {/* TOP SECTION: 2-Cols (Current Output Hero Card + Supply Flow Distribution) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
         {/* Left 8-cols: Dark Green Hero Card with Area Chart */}
-        <div className="lg:col-span-8 bg-[#172208] text-white p-6 rounded-2xl shadow-md border border-[#2D3F14] flex flex-col justify-between space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#2D3F14] pb-4">
+        <div className="lg:col-span-8 bg-[#172208] text-white p-4 sm:p-6 rounded-2xl shadow-md border border-[#2D3F14] flex flex-col justify-between space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#2D3F14] pb-4">
             <div>
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-[#84CC16] animate-pulse" />
@@ -141,7 +141,7 @@ export default function CommandCenter() {
                   CURRENT OUTPUT • LIVE
                 </span>
               </div>
-              <h2 className="text-3xl font-extrabold tracking-tight mt-1 text-white">
+              <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight mt-1 text-white">
                 {formatQtl(totalArrivalsVal)}
               </h2>
               <p className="text-xs text-[#8FA866] mt-0.5">
@@ -151,17 +151,17 @@ export default function CommandCenter() {
             <div className="flex items-center gap-4 text-xs">
               <div>
                 <p className="text-[#8FA866] text-[10px] uppercase font-bold">PEAK TODAY</p>
-                <p className="text-white font-bold">24.8k Qtl</p>
+                <p className="text-white font-bold text-sm">24.8k Qtl</p>
               </div>
               <div className="border-l border-[#2D3F14] pl-4">
                 <p className="text-[#8FA866] text-[10px] uppercase font-bold">PERFORMANCE</p>
-                <p className="text-[#84CC16] font-bold">102.4% vs forecast</p>
+                <p className="text-[#84CC16] font-bold text-sm">102.4% vs forecast</p>
               </div>
             </div>
           </div>
 
           {/* Large Area Chart inside Dark Card */}
-          <div className="flex-1 w-full min-h-[220px]">
+          <div className="flex-1 w-full min-h-[180px] sm:min-h-[220px]">
             <AreaChart
               data={displayTrend}
               xAxisKey="date"
@@ -175,7 +175,7 @@ export default function CommandCenter() {
         </div>
 
         {/* Right 4-cols: Supply Flow Distribution Card */}
-        <div className="lg:col-span-4 agro-card p-6 flex flex-col justify-between space-y-4">
+        <div className="lg:col-span-4 agro-card p-4 sm:p-6 flex flex-col justify-between space-y-4">
           <div className="flex items-center justify-between border-b border-[#5B7B10]/15 pb-3">
             <h3 className="text-xs font-bold uppercase tracking-wider text-[#364E00] flex items-center gap-2">
               <Layers className="w-4 h-4 text-[#5B7B10]" />
@@ -299,10 +299,10 @@ export default function CommandCenter() {
       </div>
 
       {/* MAIN MIDDLE SECTION (Mandi Health Grid + Donut Gauge + Forecast Bar Chart from Mockup 2) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
         {/* Left 6-cols: Mandi Array Output Matrix Grid */}
-        <div className="lg:col-span-6 agro-card p-5 space-y-4 flex flex-col justify-between">
-          <div className="flex items-center justify-between border-b border-[#5B7B10]/15 pb-3">
+        <div className="lg:col-span-6 agro-card p-4 sm:p-5 space-y-4 flex flex-col justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[#5B7B10]/15 pb-3 gap-2">
             <div>
               <h3 className="text-xs font-bold uppercase tracking-wider text-[#364E00] flex items-center gap-2">
                 <Activity className="w-4 h-4 text-[#5B7B10]" />
@@ -310,7 +310,7 @@ export default function CommandCenter() {
               </h3>
               <p className="text-[10px] text-[#7A8F59]">State Mandi Telemetry Array • Real-time health status</p>
             </div>
-            <div className="flex items-center gap-3 text-[10px] font-bold">
+            <div className="flex items-center gap-2.5 text-[10px] font-bold flex-wrap">
               <span className="flex items-center gap-1 text-[#364E00]">
                 <span className="w-2 h-2 rounded-full bg-[#84CC16]" /> 66 Normal
               </span>
@@ -324,13 +324,13 @@ export default function CommandCenter() {
           </div>
 
           {/* Interactive 6x12 Matrix Grid */}
-          <div className="grid grid-cols-12 gap-1.5 p-2 bg-[#F6F8EF] rounded-xl border border-[#5B7B10]/15">
+          <div className="grid grid-cols-8 sm:grid-cols-12 gap-1 sm:gap-1.5 p-1.5 sm:p-2 bg-[#F6F8EF] rounded-xl border border-[#5B7B10]/15">
             {mandiGrid.map((m) => (
               <button
                 key={m.id}
                 onClick={() => setSelectedMandiId(m.code)}
                 title={`${m.id} (${m.code}): ${m.status}`}
-                className={`h-7 rounded-md text-[9px] font-extrabold transition-all flex items-center justify-center border shadow-2xs ${
+                className={`h-6 sm:h-7 rounded-md text-[8px] sm:text-[9px] font-extrabold transition-all flex items-center justify-center border shadow-2xs cursor-pointer ${
                   m.status === 'alert'
                     ? 'bg-red-500 text-white border-red-600 animate-pulse'
                     : m.status === 'warning'
@@ -346,8 +346,8 @@ export default function CommandCenter() {
           {/* Grid Footer status message from Mockup 2 */}
           <div className="flex items-center justify-between text-xs text-[#526633] pt-2 border-t border-[#5B7B10]/10">
             <div className="flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-amber-600" />
-              <span className="font-semibold text-[#1F2E0A]">
+              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+              <span className="font-semibold text-[#1F2E0A] text-[11px] sm:text-xs">
                 2 mandis flagged — MANDI023 underperforming (-12%), MANDI019 delayed transit
               </span>
             </div>
@@ -355,7 +355,7 @@ export default function CommandCenter() {
         </div>
 
         {/* Center 3-cols: MSP Pressure Donut Gauge */}
-        <div className="lg:col-span-3 agro-card p-5 flex flex-col justify-between space-y-3">
+        <div className="lg:col-span-3 agro-card p-4 sm:p-5 flex flex-col justify-between space-y-3">
           <div className="flex items-center justify-between border-b border-[#5B7B10]/15 pb-2">
             <h3 className="text-xs font-bold uppercase tracking-wider text-[#364E00]">
               MSP Capacity Watch

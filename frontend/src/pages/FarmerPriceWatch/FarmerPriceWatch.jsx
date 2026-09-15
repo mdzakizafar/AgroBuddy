@@ -325,34 +325,34 @@ export default function FarmerPriceWatch() {
       </div>
 
       {/* Interactive Tables: Mandi Price Pressure Rankings & Distressed Transactions */}
-      <div className="agro-card p-5 space-y-4">
+      <div className="agro-card p-4 sm:p-5 space-y-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-[#5B7B10]/15 pb-3">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
             <button
               onClick={() => setActiveTableTab('mandi-rankings')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all ${
+              className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-[11px] sm:text-xs transition-all cursor-pointer ${
                 activeTableTab === 'mandi-rankings'
                   ? 'bg-[#5B7B10] text-white shadow-sm shadow-[#5B7B10]/20 font-bold border border-[#5B7B10]'
                   : 'bg-[#F6F8EF] text-[#526633] border border-[#5B7B10]/20 hover:bg-[#EEF2E0] hover:text-[#1F2E0A] font-medium'
               }`}
             >
               <Building2 className="w-3.5 h-3.5" />
-              Mandi Price Pressure Rankings ({mandiPressure.length})
+              <span>Mandi Price Pressure ({mandiPressure.length})</span>
             </button>
             <button
               onClick={() => setActiveTableTab('distressed-transactions')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all ${
+              className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-[11px] sm:text-xs transition-all cursor-pointer ${
                 activeTableTab === 'distressed-transactions'
                   ? 'bg-[#5B7B10] text-white shadow-sm shadow-[#5B7B10]/20 font-bold border border-[#5B7B10]'
                   : 'bg-[#F6F8EF] text-[#526633] border border-[#5B7B10]/20 hover:bg-[#EEF2E0] hover:text-[#1F2E0A] font-medium'
               }`}
             >
               <Layers className="w-3.5 h-3.5" />
-              Distressed Transactions Stream ({directoryRows.length})
+              <span>Distressed Trades ({directoryRows.length})</span>
             </button>
           </div>
-          <span className="text-xs text-[#7A8F59] font-medium">
-            Click any row to open Mandi Intelligence drawer
+          <span className="text-[11px] sm:text-xs text-[#7A8F59] font-medium">
+            Click any row to open Mandi drawer
           </span>
         </div>
 

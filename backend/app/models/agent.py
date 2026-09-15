@@ -11,6 +11,8 @@ class SeriesSpec(BaseModel):
     field: str
     label: str
     color: Optional[str] = None
+    type: Optional[str] = None
+    yAxisIndex: Optional[int] = None
 
 
 class VisualizationSpec(BaseModel):
@@ -19,6 +21,7 @@ class VisualizationSpec(BaseModel):
     x_axis: Optional[AxisSpec] = None
     y_axis: Optional[AxisSpec] = None
     series: List[SeriesSpec] = Field(default_factory=list)
+    horizontal: bool = False
     options: Dict[str, Any] = Field(default_factory=dict)
 
 
@@ -30,9 +33,12 @@ class AgentIntent(BaseModel):
     intent_type: str
     crop: Optional[str] = None
     crops: List[str] = Field(default_factory=list)
+    mandi_name: Optional[str] = None
     mandi_id: Optional[str] = None
     district: Optional[str] = None
     state: Optional[str] = None
+    limit: Optional[int] = None
+    days: Optional[int] = None
     metrics: List[str] = Field(default_factory=list)
     group_by: Optional[str] = None
     date_range: Optional[str] = None
@@ -46,4 +52,7 @@ class AgentQueryResponse(BaseModel):
     visualization: Optional[VisualizationSpec] = None
     summary: str
     recommendation: Optional[str] = ""
+    is_grounded: bool = True
+    data_points_count: int = 0
+    execution_time_ms: Optional[float] = None
     error: Optional[Dict[str, str]] = None
