@@ -1,8 +1,10 @@
 import os
 import duckdb
+import pandas as pd
 from pathlib import Path
 from backend.app.core.config import settings
 from backend.app.core.logging import logger
+from backend.app.utils.normalization import normalize_district
 
 
 def init_db(data_dir: Path = settings.DATA_DIR, db_path: Path = settings.DUCKDB_PATH):

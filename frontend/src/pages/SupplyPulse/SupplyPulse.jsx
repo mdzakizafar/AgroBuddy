@@ -86,6 +86,7 @@ export default function SupplyPulse() {
               title="Total Arrivals"
               value={formatQtl(totalArrivals)}
               trend={6.4}
+              trendLabel="vs prior period"
               icon={TrendingUp}
               description="State Total Inflow"
             />
@@ -93,6 +94,7 @@ export default function SupplyPulse() {
               title="Farmers Served"
               value={totalFarmers.toLocaleString()}
               trend={4.2}
+              trendLabel="vs prior period"
               icon={Users}
               description="Active Producers"
             />
@@ -100,6 +102,7 @@ export default function SupplyPulse() {
               title="Top Crop Contribution"
               value={topCrop.crop_name}
               trend={12.1}
+              trendLabel="vs avg share"
               icon={Sprout}
               description={`${formatPct(topCropShare)} of State Arrivals`}
             />
@@ -107,6 +110,7 @@ export default function SupplyPulse() {
               title="Active Mandis"
               value={mandiList.length || 57}
               trend={0}
+              trendLabel="vs total mandis"
               icon={Building2}
               description="Operating Distribution Centers"
             />

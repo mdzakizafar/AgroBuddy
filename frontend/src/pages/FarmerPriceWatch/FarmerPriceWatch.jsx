@@ -24,7 +24,7 @@ import BarChart from '../../components/charts/BarChart';
 import DataTable from '../../components/common/DataTable';
 import MandiDetailDrawer from '../../components/mandi/MandiDetailDrawer';
 import { KpiSkeleton, ChartSkeleton } from '../../components/common/Skeleton';
-import { formatCurrency, formatPct } from '../../lib/formatters';
+import { formatCurrency, formatPct, formatShortfall } from '../../lib/formatters';
 
 export default function FarmerPriceWatch() {
   const [filters, setFilters] = useState({});
@@ -136,7 +136,7 @@ export default function FarmerPriceWatch() {
         const shortfall = Math.max(0, msp - modal);
         return (
           <span className="font-extrabold text-rose-600">
-            -₹${shortfall.toFixed(1)}/Qtl
+            {formatShortfall(shortfall)}
           </span>
         );
       }
@@ -181,6 +181,7 @@ export default function FarmerPriceWatch() {
               title="Avg Modal Realization"
               value={formatCurrency(avgModal)}
               trend={3.8}
+              trendLabel="vs baseline"
               icon={Coins}
               description="State Average Realized"
             />
@@ -188,6 +189,7 @@ export default function FarmerPriceWatch() {
               title="Govt MSP Benchmark"
               value={formatCurrency(avgMsp)}
               trend={0}
+              trendLabel="vs target floor"
               icon={Scale}
               description="Guaranteed Floor Target"
             />
@@ -196,6 +198,7 @@ export default function FarmerPriceWatch() {
               value={formatCurrency(avgShortfall)}
               unit="/ Qtl"
               trend={-4.2}
+              trendLabel="gap improvement"
               icon={ArrowDownRight}
               severity="warning"
               description="Avg Shortfall on Distressed Trades"
@@ -204,6 +207,7 @@ export default function FarmerPriceWatch() {
               title="Below MSP Rate"
               value={formatPct(belowPct)}
               trend={-2.1}
+              trendLabel="vs last month"
               icon={AlertCircle}
               severity="warning"
               description="Transactions below floor"
@@ -212,7 +216,7 @@ export default function FarmerPriceWatch() {
               title="Most Affected Crop"
               value={topPressureCrop.crop_name || topPressureCrop.crop || 'Wheat'}
               trend={Number((topPressureCrop.below_msp_percentage || topPressureCrop.below_msp_rate || 31.9).toFixed(1))}
-              trendLabel="distress"
+              trendLabel="distress rate"
               icon={TrendingDown}
               severity="critical"
               description={`${formatPct(topPressureCrop.below_msp_percentage || topPressureCrop.below_msp_rate)} Under MSP`}
@@ -230,9 +234,6 @@ export default function FarmerPriceWatch() {
                 <h3 className="text-xs font-bold uppercase tracking-wider text-[#364E00]">
                   Daily Modal Price vs MSP Benchmark
                 </h3>
-                <span className="px-2 py-0.2 rounded text-[10px] font-bold bg-[#D97706]/15 text-[#92400E]">
-                  ⭐ Realized Trend
-                </span>
               </div>
               <p className="text-[11px] text-[#7A8F59] mt-0.5">
                 Realized modal price trajectory tracked against statutory minimum support price floor

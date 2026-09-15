@@ -7,13 +7,13 @@ export default function MandiDetail({ mandi, onClose }) {
   const getRiskColor = (level) => {
     switch (level?.toLowerCase()) {
       case 'critical':
-        return 'bg-red-500 text-white';
       case 'high':
-        return 'bg-amber-500 text-white';
+        return 'bg-red-600 text-white';
       case 'medium':
-        return 'bg-yellow-500 text-gray-900';
+      case 'warning':
+        return 'bg-yellow-400 text-slate-950 font-bold';
       default:
-        return 'bg-emerald-500 text-white';
+        return 'bg-emerald-600 text-white';
     }
   };
 

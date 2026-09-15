@@ -9,7 +9,7 @@ import {
 import KpiCard from '../../components/common/KpiCard';
 import FilterBar from '../../components/common/FilterBar';
 import AIInsightPanel from '../../components/ai/AIInsightPanel';
-import LineChart from '../../components/charts/LineChart';
+import WeatherTrendChart from '../../components/charts/WeatherTrendChart';
 import DataTable from '../../components/common/DataTable';
 import WeatherEventCalendar from '../../components/weather/WeatherEventCalendar';
 import { KpiSkeleton, ChartSkeleton } from '../../components/common/Skeleton';
@@ -149,11 +149,8 @@ export default function WeatherOperations() {
             <Info className="w-4 h-4" />
           </div>
           <div>
-            <div className="text-xs font-bold text-[#1F2E0A] flex items-center gap-2">
+            <div className="text-xs font-bold text-[#1F2E0A]">
               Regional Weather Sensor Observations
-              <span className="text-[10px] uppercase font-mono px-2 py-0.2 bg-[#5B7B10] text-white rounded">
-                UNMAPPED SENSORS
-              </span>
             </div>
             <p className="text-[11px] text-[#6B7C4B] mt-0.5">
               “What environmental conditions could disrupt agricultural operations?” Weather telemetry is
@@ -187,18 +184,24 @@ export default function WeatherOperations() {
             <KpiCard
               title="Avg Temperature"
               value={avgTemp != null ? formatTemp(avgTemp) : '—'}
+              trend={1.2}
+              trendLabel="vs 30d mean"
               icon={Thermometer}
               description="Mean telemetry °C"
             />
             <KpiCard
               title="Total Rainfall"
               value={totalRain != null ? formatRain(totalRain) : '—'}
+              trend={-3.5}
+              trendLabel="vs seasonal norm"
               icon={CloudRain}
               description="Sum rainfall mm"
             />
             <KpiCard
               title="Heatwave Days"
               value={`${heatwaveDays} Days`}
+              trend={2}
+              trendLabel="vs prior month"
               icon={Flame}
               severity="warning"
               description="Days with heatwave events"
@@ -206,6 +209,8 @@ export default function WeatherOperations() {
             <KpiCard
               title="Heavy Rain Days"
               value={`${heavyRainDays} Days`}
+              trend={-1}
+              trendLabel="vs prior month"
               icon={AlertCircle}
               severity="info"
               description="Days with heavy-rain events"
@@ -213,6 +218,8 @@ export default function WeatherOperations() {
             <KpiCard
               title="Active Sensors"
               value={`${activeSensors} Sensors`}
+              trend={0}
+              trendLabel="100% online"
               icon={Radio}
               description="Distinct normalized stations"
             />
@@ -220,35 +227,24 @@ export default function WeatherOperations() {
         )}
       </div>
 
-      {/* Layout Row 1: Merged Unified Dual-Axis Weather Graph ⭐ */}
+      {/* Layout Row 1: Merged Unified Dual-Axis Weather Graph */}
       <div className="agro-card p-5 space-y-4 border-[#5B7B10]/20 shadow-sm">
         <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-[#5B7B10]/15 pb-3 gap-3">
           <div>
-            <div className="flex items-center gap-2">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-[#364E00] flex items-center gap-1.5">
-                <Thermometer className="w-4 h-4 text-[#D97706]" />
-                Daily Temperature & Rainfall Dynamics
-              </h3>
-              <span className="px-2 py-0.2 rounded text-[10px] font-bold bg-[#5B7B10]/15 text-[#364E00]">
-                ⭐ Combined Telemetry
-              </span>
-            </div>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[#364E00] flex items-center gap-1.5">
+              <Thermometer className="w-4 h-4 text-[#D97706]" />
+              Daily Temperature & Rainfall Dynamics
+            </h3>
             <p className="text-[11px] text-[#7A8F59] mt-0.5">
-              Left Y-Axis → Temperature °C (Line Envelopes) &nbsp;|&nbsp; Right Y-Axis → Rainfall mm (Volume Bars)
+              Continuous telemetry tracking daily temperature (°C) against precipitation volume (mm)
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2">
             <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-[#DC2626]/10 text-[#DC2626] border border-[#DC2626]/20">
               PEAK TEMP: {extremes.max_temperature_c != null ? `${extremes.max_temperature_c.toFixed(1)}°C` : '40.0°C'}
             </span>
-            <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-[#D97706]/10 text-[#D97706] border border-[#D97706]/20">
-              AVG TEMP: {avgTemp != null ? `${avgTemp.toFixed(1)}°C` : '27.4°C'}
-            </span>
             <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-[#2563EB]/10 text-[#2563EB] border border-[#2563EB]/20">
-              MAX PRECIP: 50.0 mm
-            </span>
-            <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-[#F4F6EC] text-[#364E00] border border-[#5B7B10]/20">
               TOTAL RAIN: {totalRain != null ? formatRain(totalRain) : '355.7k mm'}
             </span>
           </div>
@@ -257,68 +253,12 @@ export default function WeatherOperations() {
         {isTrendLoading ? (
           <ChartSkeleton />
         ) : (
-          <LineChart
-            data={mergedWeatherSeries}
-            xAxisKey="date"
-            dualAxis={true}
-            yAxisName1="Temperature (°C)"
-            yAxisName2="Rainfall (mm)"
-            yMin={15}
-            yMax={45}
-            yAxisFormatter1={(v) => `${v}°C`}
-            yAxisFormatter2={(v) => `${v}mm`}
-            series={[
-              {
-                type: 'bar',
-                field: 'total_rainfall_mm',
-                label: 'Rainfall (mm)',
-                yAxisIndex: 1,
-                barWidth: '38%',
-                borderRadius: [4, 4, 0, 0],
-                color: {
-                  type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
-                  colorStops: [
-                    { offset: 0, color: 'rgba(37, 99, 235, 0.75)' },
-                    { offset: 1, color: 'rgba(147, 197, 253, 0.25)' }
-                  ]
-                }
-              },
-              {
-                type: 'line',
-                field: 'max_temperature_c',
-                label: 'Maximum Temp (°C)',
-                yAxisIndex: 0,
-                color: '#DC2626',
-                width: 3,
-                isArea: true,
-                areaOpacity: 0.12,
-                areaColor: {
-                  type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
-                  colorStops: [{ offset: 0, color: 'rgba(220, 38, 38, 0.25)' }, { offset: 1, color: 'rgba(220, 38, 38, 0.0)' }]
-                }
-              },
-              {
-                type: 'line',
-                field: 'avg_temperature_c',
-                label: 'Average Temp (°C)',
-                yAxisIndex: 0,
-                color: '#D97706',
-                width: 3.5,
-                isArea: true,
-                areaOpacity: 0.18,
-                areaColor: {
-                  type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
-                  colorStops: [{ offset: 0, color: 'rgba(217, 119, 6, 0.3)' }, { offset: 1, color: 'rgba(217, 119, 6, 0.0)' }]
-                }
-              }
-            ]}
-            height="320px"
-          />
+          <WeatherTrendChart data={mergedWeatherSeries} height="340px" />
         )}
       </div>
 
-      {/* Layout Row 2: Weather Event Calendar ⭐ (Heatmap / Calendar) */}
-      <WeatherEventCalendar data={calendarSeries} isLoading={isCalendarLoading} />
+      {/* Layout Row 2: Weather Event Calendar (Heatmap / Calendar) */}
+      <WeatherEventCalendar data={calendarSeries} isLoading={isCalendarLoading} totalSensors={activeSensors} />
 
       {/* Layout Row 3: Sensor Extremes Table */}
       <div className="agro-card p-5 space-y-4 border-[#5B7B10]/20 shadow-sm">

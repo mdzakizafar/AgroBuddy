@@ -67,12 +67,12 @@ export default function MandiRisk() {
       header: 'Vulnerability Score', 
       render: (val) => (
         <div className="flex items-center gap-2">
-          <span className={`text-base font-extrabold font-['Outfit'] ${val >= 75 ? 'text-red-600' : val >= 50 ? 'text-amber-600' : 'text-emerald-700'}`}>
+          <span className={`text-base font-extrabold font-['Outfit'] ${val >= 75 ? 'text-red-600' : val >= 50 ? 'text-amber-600' : 'text-lime-700'}`}>
             {val}
           </span>
           <div className="w-16 bg-gray-100 h-2 rounded-full overflow-hidden">
             <div 
-              className={`h-full rounded-full ${val >= 75 ? 'bg-red-600' : val >= 50 ? 'bg-amber-500' : 'bg-emerald-500'}`}
+              className={`h-full rounded-full ${val >= 75 ? 'bg-red-600' : val >= 50 ? 'bg-amber-500' : 'bg-lime-600'}`}
               style={{ width: `${val}%` }}
             />
           </div>
@@ -86,7 +86,7 @@ export default function MandiRisk() {
         const vLower = (val || '').toLowerCase();
         let variant = 'success';
         if (vLower === 'critical' || vLower === 'high') variant = 'danger';
-        else if (vLower === 'medium') variant = 'warning';
+        else if (vLower === 'medium' || vLower === 'warning') variant = 'warning';
         return <Badge variant={variant}>{val?.toUpperCase()}</Badge>;
       }
     },
@@ -118,11 +118,11 @@ export default function MandiRisk() {
           </>
         ) : (
           <>
-            <KpiCard title="Mandis Assessed" value={totalAssessed} icon={Building2} description="Monitored Mandi Nodes" />
-            <KpiCard title="Average Risk Score" value={avgRiskScore} icon={Activity} description="Network Risk Baseline" />
-            <KpiCard title="Maximum Risk Score" value={maxRiskScore} icon={ShieldAlert} severity="danger" description="Peak Vulnerability Node" />
-            <KpiCard title="Emerging Risks" value={emergingCount} icon={AlertTriangle} severity="warning" description="Watchlist Mandis" />
-            <KpiCard title="Critical Mandis" value={criticalCount} icon={ShieldAlert} severity="danger" description="Urgent Action Required" />
+            <KpiCard title="Mandis Assessed" value={totalAssessed} trend={0} trendLabel="active state grid" icon={Building2} description="Monitored Mandi Nodes" />
+            <KpiCard title="Average Risk Score" value={avgRiskScore} trend={-1.5} trendLabel="vs 30d baseline" icon={Activity} description="Network Risk Baseline" />
+            <KpiCard title="Maximum Risk Score" value={maxRiskScore} trend={2.1} trendLabel="vs 30d max" icon={ShieldAlert} severity="danger" description="Peak Vulnerability Node" />
+            <KpiCard title="Emerging Risks" value={emergingCount} trend={-2} trendLabel="vs prior week" icon={AlertTriangle} severity="warning" description="Watchlist Mandis" />
+            <KpiCard title="Critical Mandis" value={criticalCount} trend={-1} trendLabel="vs prior week" icon={ShieldAlert} severity="danger" description="Urgent Action Required" />
           </>
         )}
       </div>

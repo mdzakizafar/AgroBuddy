@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
-import { MapPin, Info, Flame, CloudRain, Truck, ShieldAlert, Layers, Activity, Compass, TrendingUp, AlertTriangle } from 'lucide-react';
+import { MapPin, Info, Flame, Truck, ShieldAlert, Compass, Activity } from 'lucide-react';
 
 export default function MandiRiskMap({ mandis = [], onSelectMandi }) {
   const [activeLens, setActiveLens] = useState('drivers'); // 'drivers' | 'price' | 'arrival' | 'logistics' | 'composite'
@@ -56,8 +56,16 @@ export default function MandiRiskMap({ mandis = [], onSelectMandi }) {
       const delayHrs = m.avg_delay_hours ?? 0;
       const volQtl = Math.round(m.arrival_volume || 0).toLocaleString();
 
+      const rScore = m.risk_score ?? 0;
+      const rLevel = (m.risk_level || 'Low').toLowerCase();
+      const isHighRisk = rScore >= 75 || rLevel === 'critical' || rLevel === 'high';
+      const isMediumRisk = !isHighRisk && (rScore >= 50 || rLevel === 'medium' || rLevel === 'warning');
+
+      const vulnColor = isHighRisk ? '#DC2626' : isMediumRisk ? '#D97706' : '#65A30D';
+      const vulnBadgeBg = isHighRisk ? '#FEE2E2' : isMediumRisk ? '#FEF3C7' : '#EBF0DC';
+
       return `
-        <div style="padding: 10px 12px; min-width: 250px; font-family: Plus Jakarta Sans, sans-serif; background: #FFFFFF; border-radius: 12px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.15); border: 1px solid rgba(91,123,16,0.2);">
+        <div style="padding: 10px 12px; min-width: 240px; font-family: Outfit, sans-serif; background: #FFFFFF; border-radius: 12px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.12); border: 1px solid rgba(91,123,16,0.2);">
           <div style="font-weight: 800; font-size: 13px; color: #1F2E0A; margin-bottom: 2px;">${m.mandi_name}</div>
           <div style="font-size: 11px; color: #7A8F59; margin-bottom: 8px;">📍 ${m.district}, ${m.state} (Lat ${m.latitude.toFixed(2)}°N, Lng ${m.longitude.toFixed(2)}°E)</div>
 
@@ -80,18 +88,18 @@ export default function MandiRiskMap({ mandis = [], onSelectMandi }) {
             </div>
           </div>
 
-          <div style="margin-top: 8px; padding-top: 6px; border-top: 1px dashed rgba(91,123,16,0.25); display: flex; justify-content: space-between; font-size: 11px;">
+          <div style="margin-top: 8px; padding-top: 6px; border-top: 1px dashed rgba(91,123,16,0.25); display: flex; justify-content: space-between; font-size: 11px; align-items: center;">
             <span style="color: #526633; font-weight: 600;">Composite Vulnerability:</span>
-            <span style="font-weight: 800; color: #1F2E0A;">${m.risk_score}/100 (${m.risk_level})</span>
+            <span style="font-weight: 800; color: ${vulnColor}; background: ${vulnBadgeBg}; padding: 2px 7px; border-radius: 4px;">${rScore}/100 (${m.risk_level || (rScore >= 75 ? 'Critical' : 'Normal')})</span>
           </div>
           <div style="margin-top: 6px; font-size: 10px; color: #5B7B10; font-weight: 700; text-align: center;">
-            Click node to inspect Mandi Detail Drawer &rarr;
+            Click node to inspect Mandi Detail &rarr;
           </div>
         </div>
       `;
     };
 
-    // Clean Indian Map Bounding Box Base Config (no graph clutter or Cartesian grid lines)
+    // Uncluttered, clean Indian Geographic Scatter Base Config
     const baseConfig = {
       backgroundColor: 'transparent',
       tooltip: {
@@ -102,7 +110,7 @@ export default function MandiRiskMap({ mandis = [], onSelectMandi }) {
         shadowBlur: 0,
         formatter: tooltipFormatter
       },
-      grid: { left: 45, right: 30, top: 40, bottom: 35, containLabel: true },
+      grid: { left: 45, right: 25, top: 35, bottom: 35, containLabel: true },
       xAxis: {
         type: 'value',
         name: 'Longitude (°E)',
@@ -112,7 +120,7 @@ export default function MandiRiskMap({ mandis = [], onSelectMandi }) {
         min: 68,
         max: 92,
         scale: true,
-        splitLine: { show: false }, // Remove cluttered graph lines
+        splitLine: { show: false }, // Completely removed intrusive gridlines
         axisTick: { show: false },
         axisLabel: { formatter: '{value}°E', color: '#7A8F59', fontSize: 9 },
         axisLine: { lineStyle: { color: 'rgba(91, 123, 16, 0.2)' } }
@@ -126,30 +134,11 @@ export default function MandiRiskMap({ mandis = [], onSelectMandi }) {
         min: 15,
         max: 35,
         scale: true,
-        splitLine: { show: false }, // Remove cluttered graph lines
+        splitLine: { show: false }, // Completely removed intrusive gridlines
         axisTick: { show: false },
         axisLabel: { formatter: '{value}°N', color: '#7A8F59', fontSize: 9 },
         axisLine: { lineStyle: { color: 'rgba(91, 123, 16, 0.2)' } }
       }
-    };
-
-    // MarkAreas representing Indian Agricultural Belts for geographic context
-    const regionalBeltsMarkArea = {
-      silent: true,
-      data: [
-        [
-          { name: 'Northern Wheat & Rice Belt (PB/HR)', xAxis: 74, yAxis: 29, itemStyle: { color: 'rgba(132, 204, 22, 0.08)', borderWidth: 1, borderColor: 'rgba(132, 204, 22, 0.25)', borderType: 'dashed' }, label: { show: true, position: 'insideTopLeft', color: '#364E00', fontSize: 9, fontWeight: 'bold' } },
-          { xAxis: 78, yAxis: 33 }
-        ],
-        [
-          { name: 'Gangetic Distress Corridor (UP/BR)', xAxis: 77, yAxis: 25, itemStyle: { color: 'rgba(220, 38, 38, 0.06)', borderWidth: 1, borderColor: 'rgba(220, 38, 38, 0.2)', borderType: 'dashed' }, label: { show: true, position: 'insideTopRight', color: '#991B1B', fontSize: 9, fontWeight: 'bold' } },
-          { xAxis: 86, yAxis: 30 }
-        ],
-        [
-          { name: 'Central-Western APMC Hubs (GJ/MP/MH)', xAxis: 71, yAxis: 18, itemStyle: { color: 'rgba(217, 119, 6, 0.06)', borderWidth: 1, borderColor: 'rgba(217, 119, 6, 0.2)', borderType: 'dashed' }, label: { show: true, position: 'insideBottomLeft', color: '#92400E', fontSize: 9, fontWeight: 'bold' } },
-          { xAxis: 80, yAxis: 24 }
-        ]
-      ]
     };
 
     // 1. Dominant Driver Multi-Series Mode
@@ -163,9 +152,9 @@ export default function MandiRiskMap({ mandis = [], onSelectMandi }) {
         ...baseConfig,
         legend: {
           show: true,
-          top: 6,
+          top: 0,
           left: 'center',
-          textStyle: { color: '#1F2E0A', fontSize: 10, fontWeight: 'bold', fontFamily: 'Plus Jakarta Sans' },
+          textStyle: { color: '#1F2E0A', fontSize: 10, fontWeight: 'bold' },
           itemGap: 14,
           data: [
             { name: 'Price Pressure Hotspots', icon: 'circle' },
@@ -179,8 +168,7 @@ export default function MandiRiskMap({ mandis = [], onSelectMandi }) {
             name: 'Price Pressure Hotspots',
             type: 'scatter',
             symbol: 'circle',
-            symbolSize: (data) => Math.max(14, Math.min(28, (data[2] || 25) * 0.85)),
-            markArea: regionalBeltsMarkArea,
+            symbolSize: (data) => Math.max(12, Math.min(24, (data[2] || 25) * 0.7)),
             data: pricePoints.map(m => ({
               name: m.mandi_name,
               value: [m.longitude, m.latitude, m.price_pressure_score || 25],
@@ -189,16 +177,16 @@ export default function MandiRiskMap({ mandis = [], onSelectMandi }) {
             itemStyle: {
               color: '#DC2626',
               borderColor: '#FFFFFF',
-              borderWidth: 2,
-              shadowBlur: 8,
-              shadowColor: 'rgba(220, 38, 38, 0.5)'
+              borderWidth: 1.5,
+              shadowBlur: 6,
+              shadowColor: 'rgba(220, 38, 38, 0.4)'
             }
           },
           {
             name: 'Arrival Volatility Hotspots',
             type: 'scatter',
             symbol: 'triangle',
-            symbolSize: (data) => Math.max(14, Math.min(28, (data[2] || 30) * 0.75)),
+            symbolSize: (data) => Math.max(12, Math.min(24, (data[2] || 30) * 0.65)),
             data: arrivalPoints.map(m => ({
               name: m.mandi_name,
               value: [m.longitude, m.latitude, m.arrival_instability_score || 30],
@@ -207,16 +195,16 @@ export default function MandiRiskMap({ mandis = [], onSelectMandi }) {
             itemStyle: {
               color: '#D97706',
               borderColor: '#FFFFFF',
-              borderWidth: 2,
-              shadowBlur: 8,
-              shadowColor: 'rgba(217, 119, 6, 0.5)'
+              borderWidth: 1.5,
+              shadowBlur: 6,
+              shadowColor: 'rgba(217, 119, 6, 0.4)'
             }
           },
           {
             name: 'Logistics Bottlenecks',
             type: 'scatter',
             symbol: 'diamond',
-            symbolSize: (data) => Math.max(14, Math.min(28, (data[2] || 30) * 0.75)),
+            symbolSize: (data) => Math.max(12, Math.min(24, (data[2] || 30) * 0.65)),
             data: logisticsPoints.map(m => ({
               name: m.mandi_name,
               value: [m.longitude, m.latitude, m.logistics_delay_score || 30],
@@ -225,9 +213,9 @@ export default function MandiRiskMap({ mandis = [], onSelectMandi }) {
             itemStyle: {
               color: '#2563EB',
               borderColor: '#FFFFFF',
-              borderWidth: 2,
-              shadowBlur: 8,
-              shadowColor: 'rgba(37, 99, 235, 0.5)'
+              borderWidth: 1.5,
+              shadowBlur: 6,
+              shadowColor: 'rgba(37, 99, 235, 0.4)'
             }
           },
           {
@@ -241,49 +229,49 @@ export default function MandiRiskMap({ mandis = [], onSelectMandi }) {
               mandiData: m
             })),
             itemStyle: {
-              color: '#5B7B10',
+              color: '#65A30D', // Green for baseline/low risk
               borderColor: '#FFFFFF',
               borderWidth: 1.5,
-              opacity: 0.8
+              opacity: 0.85
             }
           }
         ]
       };
     }
 
-    // 2. Continuous Metric Lenses (Price, Arrival, Logistics, Composite)
-    let metricField = 'price_pressure_score';
-    let metricTitle = 'Price Pressure';
-    let colorGradient = ['#5B7B10', '#D97706', '#EF4444', '#DC2626'];
-    let minVal = 16;
-    let maxVal = 28;
-
-    if (activeLens === 'arrival') {
-      metricField = 'arrival_instability_score';
-      metricTitle = 'Arrival Volatility';
-      colorGradient = ['#5B7B10', '#D97706', '#EA580C', '#9A3412'];
-      minVal = 28;
-      maxVal = 35;
-    } else if (activeLens === 'logistics') {
-      metricField = 'logistics_delay_score';
-      metricTitle = 'Logistics Delay';
-      colorGradient = ['#5B7B10', '#D97706', '#2563EB', '#1E3A8A'];
-      minVal = 0;
-      maxVal = 34;
-    } else if (activeLens === 'composite') {
-      metricField = 'risk_score';
-      metricTitle = 'Composite Risk';
-      colorGradient = ['#5B7B10', '#D97706', '#DC2626', '#7F1D1D'];
-      minVal = 16;
-      maxVal = 31;
-    }
-
+    // 2. Continuous Metric Lenses Mode
+    // Low and Medium vulnerability scores are consistently Green (#65A30D / #5B7B10), while High/Critical is Red (#DC2626)
     const seriesData = validPoints.map(m => {
-      const val = m[metricField] ?? m.risk_score ?? 20;
+      let score = m.risk_score ?? 20;
+      if (activeLens === 'price') score = m.price_pressure_score ?? 20;
+      else if (activeLens === 'arrival') score = m.arrival_instability_score ?? 20;
+      else if (activeLens === 'logistics') score = m.logistics_delay_score ?? 20;
+
+      // Color consistency rule: Low & Medium (score < 75) = Green; High/Critical (score >= 75) = Red
+      const isHigh = score >= 75 || (m.risk_level || '').toLowerCase() === 'critical' || (m.risk_level || '').toLowerCase() === 'high';
+      const isMed = !isHigh && (score >= 50 || (m.risk_level || '').toLowerCase() === 'medium' || (m.risk_level || '').toLowerCase() === 'warning');
+
+      const nodeColor = activeLens === 'drivers'
+        ? (isHigh ? '#DC2626' : isMed ? '#D97706' : '#65A30D')
+        : activeLens === 'price'
+        ? '#DC2626'
+        : activeLens === 'arrival'
+        ? '#D97706'
+        : activeLens === 'logistics'
+        ? '#2563EB'
+        : (isHigh ? '#DC2626' : isMed ? '#D97706' : '#65A30D');
+
       return {
         name: m.mandi_name,
-        value: [m.longitude, m.latitude, val],
-        mandiData: m
+        value: [m.longitude, m.latitude, score],
+        mandiData: m,
+        itemStyle: {
+          color: nodeColor,
+          borderColor: '#FFFFFF',
+          borderWidth: 1.5,
+          shadowBlur: 5,
+          shadowColor: `${nodeColor}55`
+        }
       };
     });
 
@@ -292,21 +280,10 @@ export default function MandiRiskMap({ mandis = [], onSelectMandi }) {
       legend: { show: false },
       series: [
         {
-          name: metricTitle,
+          name: 'APMC Nodes',
           type: 'scatter',
-          markArea: regionalBeltsMarkArea,
-          symbolSize: (data) => {
-            const score = data[2] || minVal;
-            const norm = (score - minVal) / Math.max(1, maxVal - minVal);
-            return Math.max(12, Math.min(30, 12 + norm * 18));
-          },
-          data: seriesData,
-          itemStyle: {
-            borderColor: '#FFFFFF',
-            borderWidth: 1.5,
-            shadowBlur: 6,
-            shadowColor: 'rgba(0, 0, 0, 0.2)'
-          }
+          symbolSize: (data) => Math.max(10, Math.min(22, 10 + (data[2] || 20) * 0.18)),
+          data: seriesData
         }
       ]
     };
@@ -472,7 +449,7 @@ export default function MandiRiskMap({ mandis = [], onSelectMandi }) {
         >
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-bold text-[#364E00] uppercase tracking-wider flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-[#5B7B10] inline-block" />
+              <span className="w-2 h-2 rounded-full bg-[#65A30D] inline-block" />
               Operational Baseline
             </span>
             <span className="text-xs font-bold text-[#1F2E0A] font-mono">{driverCounts.baseline} Mandis</span>

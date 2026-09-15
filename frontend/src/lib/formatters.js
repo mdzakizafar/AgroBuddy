@@ -1,48 +1,66 @@
 /**
  * AgroBuddy Centralized Formatters
+ * Properly handles positive and negative numbers without double minus,
+ * trailing zeroes, or misformatted currency/percent symbols.
  */
 
 export const formatCurrency = (val) => {
   if (val === null || val === undefined || isNaN(val)) return '—';
-  return `₹${Number(val).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const num = Number(val);
+  const formatted = Math.abs(num).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return num < 0 ? `-₹${formatted}` : `₹${formatted}`;
+};
+
+export const formatShortfall = (val) => {
+  if (val === null || val === undefined || isNaN(val)) return '—';
+  const num = Number(val);
+  return `-₹${Math.abs(num).toFixed(1)}/Qtl`;
 };
 
 export const formatQtl = (val) => {
   if (val === null || val === undefined || isNaN(val)) return '—';
   const num = Number(val);
-  if (num >= 1000) {
-    return `${(num / 1000).toFixed(2)}k Qtl`;
+  const absNum = Math.abs(num);
+  const sign = num < 0 ? '-' : '';
+  if (absNum >= 1000) {
+    return `${sign}${(absNum / 1000).toFixed(2)}k Qtl`;
   }
-  return `${num.toLocaleString('en-IN', { maximumFractionDigits: 1 })} Qtl`;
+  return `${sign}${absNum.toLocaleString('en-IN', { maximumFractionDigits: 1 })} Qtl`;
 };
 
 export const formatPct = (val) => {
   if (val === null || val === undefined || isNaN(val)) return '—';
-  return `${Number(val).toFixed(1)}%`;
+  const num = Number(val);
+  return `${num.toFixed(1)}%`;
 };
 
 export const formatHours = (val) => {
   if (val === null || val === undefined || isNaN(val)) return '—';
-  return `${Number(val).toFixed(1)} hrs`;
+  const num = Number(val);
+  return `${num.toFixed(1)} hrs`;
 };
 
 export const formatKm = (val) => {
   if (val === null || val === undefined || isNaN(val)) return '—';
-  return `${Math.round(Number(val))} km`;
+  const num = Number(val);
+  return `${Math.round(num)} km`;
 };
 
 export const formatTemp = (val) => {
   if (val === null || val === undefined || isNaN(val)) return '—';
-  return `${Number(val).toFixed(1)}°C`;
+  const num = Number(val);
+  return `${num.toFixed(1)}°C`;
 };
 
 export const formatRain = (val) => {
   if (val === null || val === undefined || isNaN(val)) return '—';
   const num = Number(val);
-  if (num >= 1000) {
-    return `${(num / 1000).toFixed(1)}k mm`;
+  const absNum = Math.abs(num);
+  const sign = num < 0 ? '-' : '';
+  if (absNum >= 1000) {
+    return `${sign}${(absNum / 1000).toFixed(1)}k mm`;
   }
-  return `${num.toFixed(1)} mm`;
+  return `${sign}${absNum.toFixed(1)} mm`;
 };
 
 export const formatDateStr = (dateStr) => {

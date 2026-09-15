@@ -131,6 +131,7 @@ export default function LogisticsCommand() {
               title="Total Trips"
               value={summary.total_trips?.toLocaleString() || '10,000'}
               trend={5.1}
+              trendLabel="vs prior period"
               icon={Truck}
               description="Active Fleet Logs"
             />
@@ -138,6 +139,7 @@ export default function LogisticsCommand() {
               title="On-Time Delivery"
               value={formatPct(onTimeRate)}
               trend={1.8}
+              trendLabel="vs SLA target"
               icon={CheckCircle2}
               description="Scheduled SLA Met"
             />
@@ -145,6 +147,7 @@ export default function LogisticsCommand() {
               title="Median Transit Time"
               value={formatHours(medianTransit)}
               trend={-0.8}
+              trendLabel="faster transit"
               icon={Clock}
               description="Network Median Transit"
             />
@@ -152,6 +155,7 @@ export default function LogisticsCommand() {
               title="Avg Delay Hours"
               value={formatHours(summary.average_delay_hours || 4.2)}
               trend={2.4}
+              trendLabel="vs network SLA"
               icon={AlertTriangle}
               severity="warning"
               description="Over Baseline Delay"
@@ -160,6 +164,7 @@ export default function LogisticsCommand() {
               title="P90 Delay Hours"
               value={formatHours(p90Delay)}
               trend={-1.5}
+              trendLabel="vs last month"
               icon={Clock}
               description="90th percentile worst delay"
             />
@@ -177,9 +182,6 @@ export default function LogisticsCommand() {
                 <h3 className="text-xs font-bold uppercase tracking-wider text-[#364E00]">
                   Daily Average Delay Hours Trend
                 </h3>
-                <span className="px-2 py-0.2 rounded text-[10px] font-bold bg-[#DC2626]/10 text-[#DC2626]">
-                  ⭐ Shaded Envelope
-                </span>
               </div>
               <p className="text-[11px] text-[#7A8F59] mt-0.5">
                 Fleet transit delay tracking against standard 40 km/h baseline (clean shaded area, zero glow)

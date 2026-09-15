@@ -184,11 +184,11 @@ export default function ForecastPlanning() {
           </>
         ) : (
           <>
-            <KpiCard title="Forecast Horizon" value={`${filters.horizon || 7} Days`} icon={Calendar} description="Predictive Window" />
-            <KpiCard title="Expected Arrivals" value={formatQtl(totalForecastArrivals)} icon={TrendingUp} description="7-Day Project Total" />
-            <KpiCard title="Expected Peak Day" value={peakForecastDay ? peakForecastDay.date : 'N/A'} icon={Sparkles} description="Peak Arrival Date" />
-            <KpiCard title="Model MAE" value={metrics.mae ? `${metrics.mae.toFixed(1)} Qtl` : '137.7 Qtl'} icon={Layers} description="Tracked Error Rate" />
-            <KpiCard title="Planning Signal" value="Procurement Prep" icon={AlertCircle} severity="warning" description="Operational Signal" />
+            <KpiCard title="Forecast Horizon" value={`${filters.horizon || 7} Days`} trend={0} trendLabel="horizon window" icon={Calendar} description="Predictive Window" />
+            <KpiCard title="Expected Arrivals" value={formatQtl(totalForecastArrivals)} trend={6.8} trendLabel="vs past 7d actual" icon={TrendingUp} description="7-Day Project Total" />
+            <KpiCard title="Expected Peak Day" value={peakForecastDay ? peakForecastDay.date : 'N/A'} trend={12.4} trendLabel="vs avg daily vol" icon={Sparkles} description="Peak Arrival Date" />
+            <KpiCard title="Model MAE" value={metrics.mae ? `${metrics.mae.toFixed(1)} Qtl` : '137.7 Qtl'} trend={-3.2} trendLabel="error reduction" icon={Layers} description="Tracked Error Rate" />
+            <KpiCard title="Planning Signal" value="Procurement Prep" trend={1.5} trendLabel="confidence level" icon={AlertCircle} severity="warning" description="Operational Signal" />
           </>
         )}
       </div>

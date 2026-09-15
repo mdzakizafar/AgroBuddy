@@ -17,7 +17,7 @@ const ALL_MONTHS = [
   { key: '12', name: 'Dec', full: 'December' },
 ];
 
-export default function WeatherEventCalendar({ data = [], isLoading = false }) {
+export default function WeatherEventCalendar({ data = [], isLoading = false, totalSensors = 50 }) {
   const [selectedMonthKey, setSelectedMonthKey] = useState(null);
 
   // Map incoming calendar array by month name or month key
@@ -66,16 +66,11 @@ export default function WeatherEventCalendar({ data = [], isLoading = false }) {
             <Calendar className="w-4 h-4 text-[#D9F99D]" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-[#1F2E0A]">
-                Weather Event Calendar
-              </h3>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#84CC16]/20 text-[#364E00]">
-                ⭐ Heatmap
-              </span>
-            </div>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[#1F2E0A]">
+              Weather Event Calendar
+            </h3>
             <p className="text-[11px] text-[#6B7C4B]">
-              Monthly incident recurrence matrix tracking operational disruptions across 51 telemetry stations
+              Monthly incident recurrence matrix tracking operational disruptions across {totalSensors} regional telemetry stations
             </p>
           </div>
         </div>
@@ -272,7 +267,7 @@ export default function WeatherEventCalendar({ data = [], isLoading = false }) {
               <h4 className="text-xs font-bold text-[#1F2E0A] flex items-center gap-2">
                 {selectedMonthData.full} 2026 Disruption Profile
                 <span className="text-[10px] px-2 py-0.2 bg-[#5B7B10]/15 text-[#364E00] rounded-full font-semibold">
-                  51 Regional Sensors
+                  {totalSensors} Regional Sensors
                 </span>
               </h4>
               <p className="text-[11px] text-[#6B7C4B] mt-0.5">

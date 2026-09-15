@@ -2,9 +2,12 @@ import React from 'react';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 
 export default function KpiCard({ title, value, unit, trend, trendLabel, icon: Icon, severity, description }) {
-  const isCritical = severity === 'critical';
-  const isPositive = !isCritical && typeof trend === 'number' && trend > 0;
-  const isNegative = isCritical || (typeof trend === 'number' && trend < 0);
+  const isCritical = severity === 'critical' || severity === 'danger';
+  const numericTrend = typeof trend === 'number' ? trend : parseFloat(trend);
+  const hasNumericTrend = !isNaN(numericTrend) && trend !== null && trend !== undefined;
+  
+  const isPositive = hasNumericTrend ? numericTrend > 0 : String(trend || '').startsWith('+');
+  const isNegative = isCritical || (hasNumericTrend ? numericTrend < 0 : String(trend || '').startsWith('-'));
 
   const trendColor = isCritical || isNegative
     ? 'text-[#EF4444]'
@@ -20,6 +23,13 @@ export default function KpiCard({ title, value, unit, trend, trendLabel, icon: I
     ? 'text-[#65A30D]'
     : 'text-[#5B7B10]';
 
+  const formattedTrendValue = () => {
+    if (hasNumericTrend) {
+      return numericTrend > 0 ? `+${numericTrend.toFixed(1)}%` : `${numericTrend.toFixed(1)}%`;
+    }
+    return trend;
+  };
+
   return (
     <div className="agro-card p-5 flex flex-col justify-between relative overflow-hidden group">
       {/* Top Header */}
@@ -29,7 +39,7 @@ export default function KpiCard({ title, value, unit, trend, trendLabel, icon: I
         </span>
         {Icon && (
           <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
-            severity === 'critical'
+            severity === 'critical' || severity === 'danger'
               ? 'bg-rose-50 text-rose-600 group-hover:bg-rose-600 group-hover:text-white'
               : severity === 'warning'
               ? 'bg-amber-50 text-amber-700 group-hover:bg-amber-600 group-hover:text-white'
@@ -55,13 +65,13 @@ export default function KpiCard({ title, value, unit, trend, trendLabel, icon: I
         {trend !== undefined && trend !== null ? (
           <div className={`flex items-center gap-1 font-bold ${trendColor}`}>
             {isPositive ? (
-              <TrendingUp className="w-3.5 h-3.5" />
+              <TrendingUp className="w-3.5 h-3.5 shrink-0" />
             ) : isNegative ? (
-              <TrendingDown className="w-3.5 h-3.5" />
+              <TrendingDown className="w-3.5 h-3.5 shrink-0" />
             ) : (
-              <Minus className="w-3.5 h-3.5" />
+              <Minus className="w-3.5 h-3.5 shrink-0" />
             )}
-            <span>{isPositive ? `+${trend}%` : `${trend < 0 && !trendLabel ? trend : Math.abs(trend)}%`}</span>
+            <span>{formattedTrendValue()}</span>
             {trendLabel && <span className="text-[#6B7C4B] font-normal">{trendLabel}</span>}
           </div>
         ) : (
