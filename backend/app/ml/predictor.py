@@ -141,6 +141,7 @@ class ArrivalsPredictor:
                 ForecastItem(
                     date=current_date.strftime("%Y-%m-%d"),
                     predicted_arrival_qtl=pred_val,
+                    forecast=pred_val,
                     lower_bound=lower_bound,
                     upper_bound=upper_bound
                 )

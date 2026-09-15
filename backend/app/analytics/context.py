@@ -43,9 +43,9 @@ class AnalyticsContextBuilder:
                 anomalies_and_alerts=[overview_data["arrival_anomaly_summary"]],
                 context_notes=[
                     "High-level Mandi-to-Market system overview.",
-                    f"Total Arrivals: {overview_data['kpis']['total_arrivals_qtl']} Qtl across {overview_data['kpis']['mandi_count']} mandis.",
-                    f"Below MSP: {overview_data['kpis']['below_msp_percentage']}% of price records.",
-                    f"Logistics Delays: {overview_data['kpis']['delayed_trip_percentage']}% trips delayed."
+                    f"Total Arrivals: {overview_data['kpis'].get('total_arrivals_qtl', 0.0)} Qtl across {overview_data['kpis'].get('mandi_count', 0)} mandis.",
+                    f"Below MSP: {overview_data['kpis'].get('below_msp_rate', overview_data['kpis'].get('below_msp_percentage', 0.0))}% of price records.",
+                    f"Logistics Delays: {overview_data['kpis'].get('delayed_trip_percentage', 0.0)}% trips delayed."
                 ]
             )
 
@@ -72,10 +72,10 @@ class AnalyticsContextBuilder:
                 filters=filter_dict,
                 summary_kpis={
                     "total_crops_monitored": len(price_data["crop_pressure"]),
-                    "highest_below_msp_pct": top_pressure[0]["below_msp_percentage"] if top_pressure else 0.0
+                    "highest_below_msp_pct": top_pressure[0].get("below_msp_rate", top_pressure[0].get("below_msp_percentage", 0.0)) if top_pressure else 0.0
                 },
                 top_rankings=top_pressure,
-                anomalies_and_alerts=[{"high_pressure_crops": [c["crop"] for c in top_pressure if c["below_msp_percentage"] > 40.0]}],
+                anomalies_and_alerts=[{"high_pressure_crops": [c.get("crop_name", c.get("crop")) for c in top_pressure if c.get("below_msp_rate", c.get("below_msp_percentage", 0.0)) > 40.0]}],
                 context_notes=[
                     "Formula enforced: msp_gap = msp - modal_price, below_msp_flag = modal_price < msp.",
                     "Focus on crops where modal_price consistently trades below government MSP."

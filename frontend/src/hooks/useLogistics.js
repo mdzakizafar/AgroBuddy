@@ -1,5 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
-import { fetchLogisticsSummary, fetchLogisticsDelays, fetchLogisticsByMandi } from '../api/logistics';
+import {
+  fetchLogisticsSummary,
+  fetchLogisticsDelays,
+  fetchLogisticsByMandi,
+  fetchRouteLogistics
+} from '../api/logistics';
 
 export const useLogisticsSummary = (filters = {}) => {
   return useQuery({
@@ -21,6 +26,14 @@ export const useLogisticsByMandi = (filters = {}) => {
   return useQuery({
     queryKey: ['logistics-by-mandi', filters],
     queryFn: () => fetchLogisticsByMandi(filters),
+    staleTime: 60000,
+  });
+};
+
+export const useRouteLogistics = (filters = {}) => {
+  return useQuery({
+    queryKey: ['logistics-routes', filters],
+    queryFn: () => fetchRouteLogistics(filters),
     staleTime: 60000,
   });
 };

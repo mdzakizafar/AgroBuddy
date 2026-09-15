@@ -13,11 +13,29 @@ def init_db(data_dir: Path = settings.DATA_DIR, db_path: Path = settings.DUCKDB_
     
     conn = duckdb.connect(str(db_path), read_only=False)
     try:
-        # 1. dim_mandi
+        # 1. dim_mandi (Normalized Districts & Geographic Enrichment)
         mandi_csv = data_dir / "clean_mandi_master.csv"
+        coords_json = settings.BASE_DIR / "backend" / "app" / "db" / "mandi_coordinates.json"
+        
+        coords_map = {}
+        if coords_json.exists():
+            import json
+            with open(coords_json, "r") as f:
+                coords_map = json.load(f)
+
         if mandi_csv.exists():
             logger.info(f"Loading dim_mandi from {mandi_csv}")
-            conn.execute(f"""
+            df_mandi = pd.read_csv(mandi_csv)
+            if "district" in df_mandi.columns:
+                df_mandi["district"] = df_mandi["district"].apply(normalize_district)
+            
+            # Map latitude, longitude, and coordinate_source
+            df_mandi["latitude"] = df_mandi["mandi_id"].apply(lambda x: coords_map.get(str(x), {}).get("latitude"))
+            df_mandi["longitude"] = df_mandi["mandi_id"].apply(lambda x: coords_map.get(str(x), {}).get("longitude"))
+            df_mandi["coordinate_source"] = df_mandi["mandi_id"].apply(lambda x: coords_map.get(str(x), {}).get("source", "unavailable"))
+            
+            conn.register("df_mandi_temp", df_mandi)
+            conn.execute("""
                 CREATE OR REPLACE TABLE dim_mandi AS 
                 SELECT 
                     CAST(mandi_id AS VARCHAR) AS mandi_id,
@@ -25,8 +43,11 @@ def init_db(data_dir: Path = settings.DATA_DIR, db_path: Path = settings.DUCKDB_
                     CAST(district AS VARCHAR) AS district,
                     CAST(state AS VARCHAR) AS state,
                     CAST(mandi_type AS VARCHAR) AS mandi_type,
-                    CAST(total_area_acres AS DOUBLE) AS total_area_acres
-                FROM read_csv_auto('{mandi_csv.as_posix()}');
+                    CAST(total_area_acres AS DOUBLE) AS total_area_acres,
+                    CAST(latitude AS DOUBLE) AS latitude,
+                    CAST(longitude AS DOUBLE) AS longitude,
+                    CAST(coordinate_source AS VARCHAR) AS coordinate_source
+                FROM df_mandi_temp;
             """)
         else:
             logger.warning(f"File not found: {mandi_csv}")

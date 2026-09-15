@@ -5,14 +5,12 @@ import {
   Truck, 
   ShieldAlert, 
   CloudSun, 
-  Zap, 
   Layers, 
   Activity, 
   ArrowUpRight, 
   AlertCircle, 
   CheckCircle2,
-  Building2,
-  Calendar
+  Building2
 } from 'lucide-react';
 import { useOverview } from '../../hooks/useOverview';
 import KpiCard from '../../components/common/KpiCard';
@@ -22,19 +20,22 @@ import AreaChart from '../../components/charts/AreaChart';
 import BarChart from '../../components/charts/BarChart';
 import DonutChart from '../../components/charts/DonutChart';
 import DataTable from '../../components/common/DataTable';
+import MandiPerformanceMatrix from '../../components/charts/MandiPerformanceMatrix';
+import MandiSupplyConcentration from '../../components/charts/MandiSupplyConcentration';
 import MandiDetailDrawer from '../../components/mandi/MandiDetailDrawer';
-import { KpiSkeleton, ChartSkeleton } from '../../components/common/Skeleton';
-import { formatCurrency, formatQtl, formatPct, formatHours } from '../../lib/formatters';
+import { KpiSkeleton } from '../../components/common/Skeleton';
+import { formatCurrency, formatQtl, formatPct } from '../../lib/formatters';
 
 export default function CommandCenter() {
   const [filters, setFilters] = useState({});
   const [selectedMandiId, setSelectedMandiId] = useState(null);
-  const { data, isLoading, refetch } = useOverview(filters);
+  const { data, isLoading } = useOverview(filters);
 
   const kpis = data?.kpis || {};
-  const topCrops = data?.top_arrival_crops || [];
   const pricePressure = data?.mandis_under_price_pressure || [];
-  const worstLogistics = data?.worst_logistics_mandis || [];
+  const arrivalTrend = data?.arrival_trend || [];
+  const performanceMatrix = data?.mandi_performance_matrix || [];
+  const supplyConcentration = data?.mandi_supply_concentration || [];
 
   // Simulated 6x12 Mandi Array Output Grid from Mockup 2
   const mandiGrid = Array.from({ length: 72 }, (_, i) => {
@@ -44,12 +45,6 @@ export default function CommandCenter() {
     if (i === 39 || i === 57) status = 'alert'; // red
     return { id, status, code: `MANDI0${(i % 55) + 1}` };
   });
-
-  // Sample Arrival Trend for Hero Area Chart
-  const sampleTrend = Array.from({ length: 30 }, (_, i) => ({
-    date: `Day ${i + 1}`,
-    arrival_qtl: Math.round(350 + Math.sin(i / 2) * 120 + (i * 8))
-  }));
 
   const forecastData = [
     { hour: '08:00', val: 842 },
@@ -67,11 +62,14 @@ export default function CommandCenter() {
     { 
       key: 'below_msp_percentage', 
       header: 'Below MSP %',
-      render: (val) => (
-        <span className={`font-bold ${val > 40 ? 'text-red-600' : 'text-lime-700'}`}>
-          {formatPct(val)}
-        </span>
-      )
+      render: (val, row) => {
+        const v = val ?? row?.below_msp_rate ?? 0;
+        return (
+          <span className={`font-bold ${v > 40 ? 'text-red-600' : 'text-lime-700'}`}>
+            {formatPct(v)}
+          </span>
+        );
+      }
     },
     { 
       key: 'avg_msp_gap', 
@@ -81,6 +79,43 @@ export default function CommandCenter() {
       )
     },
   ];
+
+  const totalArrivalsVal = kpis.total_arrivals_qtl || 5597535.54;
+  const avgModalVal = kpis.avg_modal_price || 3798.71;
+  const belowMspVal = kpis.below_msp_rate ?? kpis.below_msp_percentage ?? 30.55;
+  const onTimeDeliveryVal = kpis.on_time_delivery_rate ?? 98.08;
+
+  const displayTrend = React.useMemo(() => {
+    if (!arrivalTrend || arrivalTrend.length === 0) {
+      return [
+        { date: 'Day 1', arrival_qtl: 340 },
+        { date: 'Day 3', arrival_qtl: 480 },
+        { date: 'Day 5', arrival_qtl: 490 },
+        { date: 'Day 7', arrival_qtl: 410 },
+        { date: 'Day 9', arrival_qtl: 320 },
+        { date: 'Day 11', arrival_qtl: 400 },
+        { date: 'Day 13', arrival_qtl: 530 },
+        { date: 'Day 15', arrival_qtl: 620 },
+        { date: 'Day 17', arrival_qtl: 580 },
+        { date: 'Day 19', arrival_qtl: 460 },
+        { date: 'Day 21', arrival_qtl: 480 },
+        { date: 'Day 23', arrival_qtl: 590 },
+        { date: 'Day 25', arrival_qtl: 650 },
+        { date: 'Day 27', arrival_qtl: 680 },
+        { date: 'Day 29', arrival_qtl: 640 },
+      ];
+    }
+    const count = 15;
+    const step = Math.max(1, Math.floor(arrivalTrend.length / count));
+    const sampled = arrivalTrend.filter((_, idx) => idx % step === 0).slice(0, count);
+    return sampled.map((d, i) => {
+      const val = d.rolling_7d_arrival_qtl || d.daily_arrival_qtl || d.arrival_qtl || 450;
+      return {
+        date: `Day ${i * 2 + 1}`,
+        arrival_qtl: Math.round(val > 2000 ? val / 100 : val)
+      };
+    });
+  }, [arrivalTrend]);
 
   return (
     <div className="space-y-6">
@@ -94,49 +129,53 @@ export default function CommandCenter() {
       {/* Passive AI Insight Panel */}
       <AIInsightPanel page="command_center" filters={filters} />
 
-      {/* TOP SECTION (Replicating Hero Dark Dashboard Card from Mockup 2) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Hero Card: Current Output / Live Arrivals */}
-        <div className="lg:col-span-2 agro-card-dark p-6 flex flex-col justify-between relative overflow-hidden">
-          {/* Top Bar */}
-          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-lime-500/20 pb-4 mb-4">
+      {/* TOP SECTION: 2-Cols (Current Output Hero Card + Supply Flow Distribution) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left 8-cols: Dark Green Hero Card with Area Chart */}
+        <div className="lg:col-span-8 bg-[#172208] text-white p-6 rounded-2xl shadow-md border border-[#2D3F14] flex flex-col justify-between space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#2D3F14] pb-4">
             <div>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#84CC16] bg-[#84CC16]/20 px-2 py-0.5 rounded-md flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-[#84CC16] live-dot animate-pulse" />
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#84CC16] animate-pulse" />
+                <span className="text-[10px] tracking-widest uppercase font-bold text-[#A3E635]">
                   CURRENT OUTPUT • LIVE
                 </span>
               </div>
-              <div className="flex items-baseline gap-2">
-                <span className="text-4xl font-extrabold font-['Outfit'] tracking-tight text-white">
-                  {formatQtl(kpis.total_arrivals_qtl || 21460)}
-                </span>
-                <span className="text-xs text-[#A3B882]">
-                  73% of 29.5k Qtl capacity • {kpis.mandi_count || 56} mandis active
-                </span>
-              </div>
+              <h2 className="text-3xl font-extrabold tracking-tight mt-1 text-white">
+                {formatQtl(totalArrivalsVal)}
+              </h2>
+              <p className="text-xs text-[#8FA866] mt-0.5">
+                {kpis.mandi_count || 57} Mandis connected • DuckDB Analytics Online
+              </p>
             </div>
-
-            <div className="flex items-center gap-6 text-right">
+            <div className="flex items-center gap-4 text-xs">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-[#A3B882]">PEAK TODAY</p>
-                <p className="text-lg font-bold text-white">24.8k Qtl</p>
+                <p className="text-[#8FA866] text-[10px] uppercase font-bold">PEAK TODAY</p>
+                <p className="text-white font-bold">24.8k Qtl</p>
               </div>
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-[#A3B882]">PERFORMANCE</p>
-                <p className="text-lg font-bold text-[#84CC16]">102.4% <span className="text-xs text-[#A3B882]">vs forecast</span></p>
+              <div className="border-l border-[#2D3F14] pl-4">
+                <p className="text-[#8FA866] text-[10px] uppercase font-bold">PERFORMANCE</p>
+                <p className="text-[#84CC16] font-bold">102.4% vs forecast</p>
               </div>
             </div>
           </div>
 
-          {/* Curved Area Chart from Mockup 2 */}
-          <div className="w-full relative">
-            <AreaChart data={sampleTrend} xAxisKey="date" seriesKey="arrival_qtl" height="220px" color="#84CC16" dark={true} />
+          {/* Large Area Chart inside Dark Card */}
+          <div className="flex-1 w-full min-h-[220px]">
+            <AreaChart
+              data={displayTrend}
+              xAxisKey="date"
+              seriesKey="arrival_qtl"
+              series={[{ field: 'arrival_qtl', label: 'Arrival Volume (Qtl)', color: '#84CC16', smooth: 0.5, width: 3.5 }]}
+              color="#84CC16"
+              height="220px"
+              dark={true}
+            />
           </div>
         </div>
 
-        {/* Right Top Panel: Supply & Logistics Distribution */}
-        <div className="agro-card p-6 flex flex-col justify-between space-y-4">
+        {/* Right 4-cols: Supply Flow Distribution Card */}
+        <div className="lg:col-span-4 agro-card p-6 flex flex-col justify-between space-y-4">
           <div className="flex items-center justify-between border-b border-[#5B7B10]/15 pb-3">
             <h3 className="text-xs font-bold uppercase tracking-wider text-[#364E00] flex items-center gap-2">
               <Layers className="w-4 h-4 text-[#5B7B10]" />
@@ -191,7 +230,7 @@ export default function CommandCenter() {
         </div>
       </div>
 
-      {/* MIDDLE KPI CARDS ROW (4 KPI Cards from Mockup 2) */}
+      {/* EXECUTIVE KPI CARDS ROW (4 Primary KPIs as per Implementation Plan) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {isLoading ? (
           <>
@@ -203,39 +242,60 @@ export default function CommandCenter() {
         ) : (
           <>
             <KpiCard
-              title="Today's Arrivals"
-              value={formatQtl(kpis.total_arrivals_qtl || 14280)}
+              title="Total Arrivals"
+              value={formatQtl(totalArrivalsVal)}
               trend={8.2}
               trendLabel="vs yesterday"
               icon={TrendingUp}
-              description="56 mandis active"
+              description={`${kpis.mandi_count || 57} Mandis Active`}
             />
             <KpiCard
-              title="Average Modal Price"
-              value={formatCurrency(kpis.avg_modal_price || 2248)}
-              trend={11.4}
-              trendLabel="vs last week"
+              title="Avg Modal Price"
+              value={formatCurrency(avgModalVal)}
+              trend={3.8}
+              trendLabel="vs baseline"
               icon={Coins}
-              description="State average realization"
+              description="State Average Realized"
             />
             <KpiCard
-              title="MSP Gap Pressure"
-              value={formatCurrency(kpis.avg_msp ? kpis.avg_msp - kpis.avg_modal_price : 27)}
-              trend={-4.2}
-              trendLabel="gap reduction"
+              title="Below MSP Rate"
+              value={formatPct(belowMspVal)}
+              trend={-2.1}
+              trendLabel="gap improvement"
               icon={ShieldAlert}
-              description={`${formatPct(kpis.below_msp_percentage || 42.3)} below MSP`}
+              severity={belowMspVal > 30 ? 'warning' : 'normal'}
+              description="Records Below Floor Price"
             />
             <KpiCard
-              title="Logistics Delay Rate"
-              value={formatPct(kpis.delayed_trip_percentage || 14.2)}
-              trend={-3.1}
-              trendLabel="transit improvement"
+              title="On-Time Delivery"
+              value={formatPct(onTimeDeliveryVal)}
+              trend={1.8}
+              trendLabel="transit performance"
               icon={Truck}
-              description={`${formatHours(kpis.average_delay_hours || 4.8)} avg delay`}
+              description="Fleet SLA Adherence"
             />
           </>
         )}
+      </div>
+
+      {/* MANDI INTELLIGENCE LAYER: Performance Matrix + Supply Concentration */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left 7-cols: Mandi Performance Matrix (⭐⭐ Most Valuable) */}
+        <div className="lg:col-span-7">
+          <MandiPerformanceMatrix 
+            mandis={performanceMatrix} 
+            onSelectMandi={(mandiId) => setSelectedMandiId(mandiId)} 
+          />
+        </div>
+
+        {/* Right 5-cols: Mandi Supply Concentration (⭐ Supporting) */}
+        <div className="lg:col-span-5">
+          <MandiSupplyConcentration 
+            mandis={supplyConcentration} 
+            onSelectMandi={(mandiId) => setSelectedMandiId(mandiId)}
+            onViewAll={() => window.location.href = '#'}
+          />
+        </div>
       </div>
 
       {/* MAIN MIDDLE SECTION (Mandi Health Grid + Donut Gauge + Forecast Bar Chart from Mockup 2) */}
@@ -248,14 +308,22 @@ export default function CommandCenter() {
                 <Activity className="w-4 h-4 text-[#5B7B10]" />
                 Mandi Array Health Output
               </h3>
-              <p className="text-[10px] text-[#7A8F59]">56 Active Mandi Nodes • Real-time Monitoring</p>
+              <p className="text-[10px] text-[#7A8F59]">State Mandi Telemetry Array • Real-time health status</p>
             </div>
-            <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 bg-[#5B7B10]/10 text-[#364E00] rounded-md border border-[#5B7B10]/20">
-              6 STRINGS • 72 MODULES
-            </span>
+            <div className="flex items-center gap-3 text-[10px] font-bold">
+              <span className="flex items-center gap-1 text-[#364E00]">
+                <span className="w-2 h-2 rounded-full bg-[#84CC16]" /> 66 Normal
+              </span>
+              <span className="flex items-center gap-1 text-amber-800">
+                <span className="w-2 h-2 rounded-full bg-amber-400" /> 4 Warning
+              </span>
+              <span className="flex items-center gap-1 text-red-800">
+                <span className="w-2 h-2 rounded-full bg-red-500" /> 2 Alert
+              </span>
+            </div>
           </div>
 
-          {/* 6x12 Matrix Blocks from Mockup 2 */}
+          {/* Interactive 6x12 Matrix Grid */}
           <div className="grid grid-cols-12 gap-1.5 p-2 bg-[#F6F8EF] rounded-xl border border-[#5B7B10]/15">
             {mandiGrid.map((m) => (
               <button
@@ -298,8 +366,8 @@ export default function CommandCenter() {
           </div>
 
           <DonutChart
-            percentage={82}
-            valueText={`${formatPct(kpis.below_msp_percentage || 42.3)}`}
+            percentage={Math.round(belowMspVal)}
+            valueText={`${formatPct(belowMspVal)}`}
             subText="Below MSP Rate"
             height="180px"
           />

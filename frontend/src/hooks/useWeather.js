@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { fetchWeatherTrend, fetchWeatherExtremes, fetchWeatherSensors } from '../api/weather';
+import { fetchWeatherTrend, fetchWeatherExtremes, fetchWeatherSensors, fetchWeatherCalendar } from '../api/weather';
 
 export const useWeatherTrend = (filters = {}) => {
   return useQuery({
@@ -24,3 +24,12 @@ export const useWeatherSensors = () => {
     staleTime: 60000,
   });
 };
+
+export const useWeatherCalendar = (filters = {}) => {
+  return useQuery({
+    queryKey: ['weather-calendar', filters],
+    queryFn: () => fetchWeatherCalendar(filters),
+    staleTime: 60000,
+  });
+};
+

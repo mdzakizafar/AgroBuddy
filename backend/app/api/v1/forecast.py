@@ -6,8 +6,10 @@ from backend.app.db.duckdb import get_db
 from backend.app.models.common import ResponseMetadata, FilterParams
 from backend.app.models.forecast import ForecastResponse, HistoricalItem
 from backend.app.repositories.arrivals import ArrivalsRepository
+from backend.app.ml.predictor import ArrivalsPredictor
 
 router = APIRouter()
+predictor = ArrivalsPredictor()
 
 
 @router.get("/forecast/arrivals", response_model=ForecastResponse)
@@ -26,19 +28,35 @@ def get_forecast_arrivals(
         for item in trend[-30:]
     ]
     
+    # Generate ML forecast using trained MLflow best model
+    ml_res = predictor.predict_forecast(
+        conn=conn,
+        crop=crop,
+        mandi_id=mandi_id,
+        horizon=horizon
+    )
+    
     meta = ResponseMetadata(
         filters={"mandi_id": mandi_id, "crop": crop, "horizon": horizon}
     )
     
+    forecast_list = ml_res["forecast"]
     return ForecastResponse(
         mandi_id=mandi_id,
         crop=crop,
         horizon=horizon,
-        status="not_available",
-        message="Forecasting model pipeline is not yet connected. Historical data is provided for baseline.",
-        model="baseline_historical",
-        metrics={"mae": None, "mape": None},
+        horizon_days=horizon,
+        status=ml_res["status"],
+        message=ml_res["message"],
+        model=ml_res["model"],
+        metrics={
+            "mae": ml_res["metrics"].get("mae"),
+            "mape": ml_res["metrics"].get("mape"),
+            "rmse": ml_res["metrics"].get("rmse"),
+            "r2": ml_res["metrics"].get("r2")
+        },
         historical=historical,
-        forecast=[],
+        forecast=forecast_list,
+        data=forecast_list,
         metadata=meta
     )

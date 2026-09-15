@@ -95,6 +95,13 @@ class ArrivalsRepository:
 
         query += " GROUP BY a.date ORDER BY a.date"
         df = self.conn.execute(query, params).df()
+        
+        # Calculate 7-day moving average
+        if not df.empty and "arrival_qtl" in df.columns:
+            df["rolling_7d_arrival_qtl"] = df["arrival_qtl"].rolling(window=7, min_periods=1).mean().round(2)
+        else:
+            df["rolling_7d_arrival_qtl"] = []
+
         return sanitize_nans(df.to_dict(orient="records"))
 
     def get_arrivals_by_crop(self, filters: Optional[FilterParams] = None) -> List[Dict[str, Any]]:
@@ -129,10 +136,91 @@ class ArrivalsRepository:
             SELECT 
                 c.crop_name,
                 c.arrival_qtl,
-                CASE WHEN t.grand_total > 0 THEN (c.arrival_qtl / t.grand_total) * 100.0 ELSE 0.0 END AS percentage_of_total,
+                CASE WHEN t.grand_total > 0 THEN (c.arrival_qtl / t.grand_total) * 100.0 ELSE 0.0 END AS share_percent,
                 c.farmer_count
             FROM crop_agg c, tot t
             ORDER BY c.arrival_qtl DESC
+        """
+        df = self.conn.execute(query, params).df()
+        return sanitize_nans(df.to_dict(orient="records"))
+
+    def get_arrival_mix_time_series(self, filters: Optional[FilterParams] = None) -> List[Dict[str, Any]]:
+        where_str, params = self._build_where(filters)
+        query = f"""
+            WITH daily_crop AS (
+                SELECT 
+                    a.date::VARCHAR AS date,
+                    a.crop_name,
+                    SUM(a.arrival_qtl) AS arrival_qtl
+                FROM fact_arrivals a
+                JOIN dim_mandi m ON a.mandi_id = m.mandi_id
+                WHERE {where_str}
+        """
+        if filters:
+            if filters.district:
+                query += " AND LOWER(m.district) = LOWER(?)"
+                params.append(filters.district)
+            if filters.state:
+                query += " AND LOWER(m.state) = LOWER(?)"
+                params.append(filters.state)
+            if filters.mandi_type:
+                query += " AND LOWER(m.mandi_type) = LOWER(?)"
+                params.append(filters.mandi_type)
+
+        query += """
+                GROUP BY a.date, a.crop_name
+            ),
+            daily_tot AS (
+                SELECT date, SUM(arrival_qtl) AS day_total
+                FROM daily_crop
+                GROUP BY date
+            )
+            SELECT 
+                dc.date,
+                dc.crop_name,
+                dc.arrival_qtl,
+                CASE WHEN dt.day_total > 0 THEN (dc.arrival_qtl / dt.day_total) * 100.0 ELSE 0.0 END AS share_percent
+            FROM daily_crop dc
+            JOIN daily_tot dt ON dc.date = dt.date
+            ORDER BY dc.date, dc.arrival_qtl DESC
+        """
+        df = self.conn.execute(query, params).df()
+        return sanitize_nans(df.to_dict(orient="records"))
+
+    def get_arrival_volatility(self, filters: Optional[FilterParams] = None) -> List[Dict[str, Any]]:
+        where_str, params = self._build_where(filters)
+        query = f"""
+            WITH daily_crop AS (
+                SELECT 
+                    a.crop_name,
+                    a.date,
+                    SUM(a.arrival_qtl) AS daily_qtl
+                FROM fact_arrivals a
+                JOIN dim_mandi m ON a.mandi_id = m.mandi_id
+                WHERE {where_str}
+        """
+        if filters:
+            if filters.district:
+                query += " AND LOWER(m.district) = LOWER(?)"
+                params.append(filters.district)
+            if filters.state:
+                query += " AND LOWER(m.state) = LOWER(?)"
+                params.append(filters.state)
+            if filters.mandi_type:
+                query += " AND LOWER(m.mandi_type) = LOWER(?)"
+                params.append(filters.mandi_type)
+
+        query += """
+                GROUP BY a.crop_name, a.date
+            )
+            SELECT 
+                crop_name,
+                AVG(daily_qtl) AS mean_daily_arrival,
+                STDDEV_SAMP(daily_qtl) AS std_daily_arrival,
+                CASE WHEN AVG(daily_qtl) > 0 THEN (STDDEV_SAMP(daily_qtl) / AVG(daily_qtl)) * 100.0 ELSE 0.0 END AS volatility
+            FROM daily_crop
+            GROUP BY crop_name
+            ORDER BY volatility DESC
         """
         df = self.conn.execute(query, params).df()
         return sanitize_nans(df.to_dict(orient="records"))
@@ -144,7 +232,7 @@ class ArrivalsRepository:
                 a.mandi_id,
                 m.mandi_name,
                 m.district,
-                SUM(a.arrival_qtl) AS arrival_qtl,
+                SUM(a.arrival_qtl) AS total_arrival_qtl,
                 SUM(a.farmer_count)::INT AS farmer_count,
                 CASE WHEN SUM(a.farmer_count) > 0 THEN SUM(a.arrival_qtl) / SUM(a.farmer_count) ELSE 0.0 END AS avg_qtl_per_farmer
             FROM fact_arrivals a
@@ -162,6 +250,6 @@ class ArrivalsRepository:
                 query += " AND LOWER(m.mandi_type) = LOWER(?)"
                 params.append(filters.mandi_type)
 
-        query += " GROUP BY a.mandi_id, m.mandi_name, m.district ORDER BY arrival_qtl DESC"
+        query += " GROUP BY a.mandi_id, m.mandi_name, m.district ORDER BY total_arrival_qtl DESC"
         df = self.conn.execute(query, params).df()
         return sanitize_nans(df.to_dict(orient="records"))

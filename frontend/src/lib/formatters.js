@@ -4,7 +4,7 @@
 
 export const formatCurrency = (val) => {
   if (val === null || val === undefined || isNaN(val)) return '—';
-  return `₹${Number(val).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
+  return `₹${Number(val).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
 
 export const formatQtl = (val) => {
@@ -38,7 +38,11 @@ export const formatTemp = (val) => {
 
 export const formatRain = (val) => {
   if (val === null || val === undefined || isNaN(val)) return '—';
-  return `${Number(val).toFixed(1)} mm`;
+  const num = Number(val);
+  if (num >= 1000) {
+    return `${(num / 1000).toFixed(1)}k mm`;
+  }
+  return `${num.toFixed(1)} mm`;
 };
 
 export const formatDateStr = (dateStr) => {

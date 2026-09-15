@@ -21,6 +21,13 @@ class Settings(BaseSettings):
     INSIGHT_MODEL: str = "llama-3.3-70b-versatile"
     AGENT_MODEL: str = "llama-3.3-70b-versatile"
 
+    # LLM Cache Configuration
+    REDIS_URL: str = ""
+    LLM_CACHE_ENABLED: bool = True
+    LLM_INSIGHT_CACHE_TTL_SECONDS: int = 900
+    INSIGHT_PROMPT_VERSION: str = "v2"
+    AGENT_PROMPT_VERSION: str = "v2"
+
     model_config = SettingsConfigDict(
         env_file=str(BASE_DIR / ".env"),
         env_file_encoding="utf-8",

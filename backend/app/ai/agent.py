@@ -17,6 +17,9 @@ from backend.app.analytics.risk import MandiRiskEngine
 from backend.app.ai.prompts import AGENT_INTENT_PROMPT
 
 
+from backend.app.services.llm_cache import llm_cache
+
+
 class AgroBuddyAIAgent:
     def __init__(self, conn: duckdb.DuckDBPyConnection):
         self.conn = conn
@@ -32,13 +35,26 @@ class AgroBuddyAIAgent:
         query_text = request.query
         logger.info(f"Processing AgroBuddy AI query: '{query_text}'")
 
-        # 1. Parse intent & extract structured query plan
+        # 1. Check LLM Cache
+        cache_key = llm_cache.generate_agent_cache_key(
+            query=query_text,
+            filters=getattr(request, "filters", {}) or {},
+            model=self.model
+        )
+        cached_val = llm_cache.get(cache_key)
+        if cached_val:
+            try:
+                return AgentQueryResponse(**cached_val)
+            except Exception as ce:
+                logger.warning(f"Error parsing cached agent query response: {str(ce)}")
+
+        # 2. Parse intent & extract structured query plan
         intent = self._extract_intent(query_text)
 
-        # 2. Execute predefined capability based on intent
+        # 3. Execute predefined capability based on intent
         data, viz_spec, summary, recommendation = self._execute_query_plan(intent, query_text)
 
-        return AgentQueryResponse(
+        response_obj = AgentQueryResponse(
             query=query_text,
             intent=intent,
             data=data,
@@ -46,6 +62,10 @@ class AgroBuddyAIAgent:
             summary=summary,
             recommendation=recommendation
         )
+
+        # 4. Save in LLM Cache
+        llm_cache.set(cache_key, response_obj.model_dump())
+        return response_obj
 
     def _extract_intent(self, query_text: str) -> AgentIntent:
         if self.api_key:
@@ -124,7 +144,9 @@ class AgroBuddyAIAgent:
                     SeriesSpec(field="msp", label="Government MSP (₹/Qtl)")
                 ]
             )
-            summary = f"Analyzed price pressures relative to MSP. Top crop under pressure is {data[0]['crop'] if data else 'N/A'} with {data[0]['below_msp_percentage'] if data else 0}% records below MSP."
+            top_crop = data[0].get("crop_name", data[0].get("crop", "N/A")) if data else "N/A"
+            below_rate = data[0].get("below_msp_rate", data[0].get("below_msp_percentage", 0.0)) if data else 0.0
+            summary = f"Analyzed price pressures relative to MSP. Top crop under pressure is {top_crop} with {below_rate}% records below MSP."
             rec = "Deploy targeted market price support interventions in high-gap crop centers."
 
         elif intent.intent_type == "mandi_risk_ranking":
