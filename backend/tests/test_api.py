@@ -92,7 +92,7 @@ def test_forecast_endpoint():
     r = client.get("/api/v1/forecast/arrivals?crop=Wheat")
     assert r.status_code == 200
     data = r.json()
-    assert data["status"] in ["active", "fallback_holt_winters", "fallback_baseline", "not_available"]
+    assert data["status"] in ["available", "active", "fallback_holt_winters", "fallback_baseline", "not_available"]
     assert "historical" in data
     assert len(data["forecast"]) >= 0
 

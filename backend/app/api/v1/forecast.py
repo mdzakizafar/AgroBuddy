@@ -6,8 +6,10 @@ from backend.app.db.duckdb import get_db
 from backend.app.models.common import ResponseMetadata, FilterParams
 from backend.app.models.forecast import ForecastResponse, HistoricalItem
 from backend.app.repositories.arrivals import ArrivalsRepository
+from backend.app.ml.predictor import ArrivalsPredictor
 
 router = APIRouter()
+predictor = ArrivalsPredictor()
 
 
 @router.get("/forecast/arrivals", response_model=ForecastResponse)
@@ -25,6 +27,14 @@ def get_forecast_arrivals(
         HistoricalItem(date=item["date"], arrival_qtl=item["arrival_qtl"])
         for item in trend[-30:]
     ]
+    
+    # Generate ML forecast using trained MLflow best model
+    ml_res = predictor.predict_forecast(
+        conn=conn,
+        crop=crop,
+        mandi_id=mandi_id,
+        horizon=horizon
+    )
     
     meta = ResponseMetadata(
         filters={"mandi_id": mandi_id, "crop": crop, "horizon": horizon}
