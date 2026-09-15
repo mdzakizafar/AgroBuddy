@@ -13,11 +13,9 @@ export default function MandiPerformanceMatrix({ mandis = [], onSelectMandi, hei
       const vol = m.arrival_volume ?? 0;
       const risk = m.risk_score ?? 0;
       const level = (m.risk_level || 'Medium').toLowerCase();
-
-      let color = '#5B7B10'; // Agro Olive for normal/low risk
-      if (level === 'critical') color = '#DC2626';
-      else if (level === 'high') color = '#EF4444';
-      else if (level === 'medium') color = '#D97706';
+      let color = '#5B7B10'; // Green for Low risk
+      if (level === 'critical' || level === 'high' || risk >= 75) color = '#DC2626'; // Red for High/Critical
+      else if (level === 'medium' || level === 'warning' || risk >= 50) color = '#D97706'; // Yellow/Amber for Medium
 
       return {
         name: m.mandi_name,
@@ -180,15 +178,15 @@ export default function MandiPerformanceMatrix({ mandis = [], onSelectMandi, hei
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-[#6B7C4B] bg-[#F4F6EC] px-3 py-1.5 rounded-lg border border-[#5B7B10]/15">
         <div className="flex items-center gap-1.5">
           <span className="w-2.5 h-2.5 rounded-full bg-[#DC2626] inline-block" />
-          <span className="font-semibold text-[#1F2E0A]">Critical / High Risk</span>
+          <span className="font-semibold text-[#1F2E0A]">Critical / High Risk (&ge;75)</span>
         </div>
         <div className="flex items-center gap-1.5">
           <span className="w-2.5 h-2.5 rounded-full bg-[#D97706] inline-block" />
-          <span className="font-semibold text-[#1F2E0A]">Medium Risk</span>
+          <span className="font-semibold text-[#1F2E0A]">Medium Risk (50-74)</span>
         </div>
         <div className="flex items-center gap-1.5">
           <span className="w-2.5 h-2.5 rounded-full bg-[#5B7B10] inline-block" />
-          <span className="font-semibold text-[#1F2E0A]">Normal / Low Risk</span>
+          <span className="font-semibold text-[#1F2E0A]">Low / Normal Risk (&lt;50)</span>
         </div>
         <span className="text-[#A3B882] hidden sm:inline">|</span>
         <span className="text-[10px] text-[#7A8F59]">Bubble Size = Throughput (Qtl)</span>

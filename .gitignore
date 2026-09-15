@@ -30,4 +30,6 @@ frontend/dist/
 *.png
 *.webp
 brain/
+scratch/
+backend/scratch/
 

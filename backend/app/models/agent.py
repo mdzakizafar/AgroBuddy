@@ -29,6 +29,7 @@ class AgentQueryRequest(BaseModel):
 class AgentIntent(BaseModel):
     intent_type: str
     crop: Optional[str] = None
+    crops: List[str] = Field(default_factory=list)
     mandi_id: Optional[str] = None
     district: Optional[str] = None
     state: Optional[str] = None
@@ -41,8 +42,8 @@ class AgentIntent(BaseModel):
 class AgentQueryResponse(BaseModel):
     query: str
     intent: AgentIntent
-    data: List[Dict[str, Any]]
-    visualization: VisualizationSpec
+    data: List[Dict[str, Any]] = Field(default_factory=list)
+    visualization: Optional[VisualizationSpec] = None
     summary: str
-    recommendation: str
+    recommendation: Optional[str] = ""
     error: Optional[Dict[str, str]] = None
