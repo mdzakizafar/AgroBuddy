@@ -40,10 +40,12 @@ def get_forecast_arrivals(
         filters={"mandi_id": mandi_id, "crop": crop, "horizon": horizon}
     )
     
+    forecast_list = ml_res["forecast"]
     return ForecastResponse(
         mandi_id=mandi_id,
         crop=crop,
         horizon=horizon,
+        horizon_days=horizon,
         status=ml_res["status"],
         message=ml_res["message"],
         model=ml_res["model"],
@@ -54,6 +56,7 @@ def get_forecast_arrivals(
             "r2": ml_res["metrics"].get("r2")
         },
         historical=historical,
-        forecast=ml_res["forecast"],
+        forecast=forecast_list,
+        data=forecast_list,
         metadata=meta
     )

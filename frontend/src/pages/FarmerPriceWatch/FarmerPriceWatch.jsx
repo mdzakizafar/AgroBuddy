@@ -1,10 +1,25 @@
 import React, { useState } from 'react';
-import { Coins, AlertCircle, TrendingDown, Scale, Building2 } from 'lucide-react';
-import { usePricesMSP, usePricePressure } from '../../hooks/usePrices';
+import { 
+  Coins, 
+  AlertCircle, 
+  TrendingDown, 
+  Scale, 
+  ArrowDownRight, 
+  Building2, 
+  ExternalLink,
+  Table,
+  Layers
+} from 'lucide-react';
+import { 
+  usePricesKPIs, 
+  usePricesMSP, 
+  usePricePressure, 
+  usePriceDirectory 
+} from '../../hooks/usePrices';
 import KpiCard from '../../components/common/KpiCard';
 import FilterBar from '../../components/common/FilterBar';
 import AIInsightPanel from '../../components/ai/AIInsightPanel';
-import LineChart from '../../components/charts/LineChart';
+import PriceGapChart from '../../components/charts/PriceGapChart';
 import BarChart from '../../components/charts/BarChart';
 import DataTable from '../../components/common/DataTable';
 import MandiDetailDrawer from '../../components/mandi/MandiDetailDrawer';
@@ -14,33 +29,134 @@ import { formatCurrency, formatPct } from '../../lib/formatters';
 export default function FarmerPriceWatch() {
   const [filters, setFilters] = useState({});
   const [selectedMandiId, setSelectedMandiId] = useState(null);
+  const [activeTableTab, setActiveTableTab] = useState('mandi-rankings');
 
+  const { data: kpiData, isLoading: isKpiLoading } = usePricesKPIs(filters);
   const { data: mspData, isLoading: isMspLoading } = usePricesMSP(filters);
   const { data: pressureData, isLoading: isPressureLoading } = usePricePressure(filters);
+  const { data: directoryData, isLoading: isDirectoryLoading } = usePriceDirectory(filters);
 
-  const mspSeries = mspData?.series || [];
+  // Daily trend data with fallback
+  const mspTrendData = mspData?.data || [];
   const cropPressure = pressureData?.crop_pressure || [];
   const mandiPressure = pressureData?.mandi_pressure || [];
+  const directoryRows = (directoryData?.data || []).filter((r) => r.below_msp_flag === 1);
 
-  const avgModal = cropPressure.length > 0 ? cropPressure[0].avg_modal_price : 2248;
-  const avgMsp = cropPressure.length > 0 ? cropPressure[0].msp : 2275;
-  const belowPct = cropPressure.length > 0 ? cropPressure[0].below_msp_percentage : 42.3;
+  // Fallbacks & KPI Metrics
+  const rawKpi = kpiData?.data;
+  const avgModal = rawKpi?.avg_modal_price ?? (cropPressure.length > 0 ? cropPressure[0].avg_modal_price : 3798.71);
+  const avgMsp = rawKpi?.avg_msp ?? (cropPressure.length > 0 ? cropPressure[0].avg_msp : 3721.30);
+  const belowPct = rawKpi?.below_msp_percentage ?? (cropPressure.length > 0 ? cropPressure[0].below_msp_percentage : 30.55);
+  const avgShortfall = rawKpi?.avg_msp_shortfall ?? 170.56;
+  const topPressureCrop = cropPressure.length > 0 ? cropPressure[0] : { crop_name: 'Wheat', below_msp_percentage: 31.9 };
 
-  const priceColumns = [
-    { key: 'mandi_name', header: 'Mandi Name' },
-    { key: 'district', header: 'District' },
-    { key: 'crop', header: 'Crop' },
-    { key: 'avg_modal_price', header: 'Avg Modal Price', render: (val) => <span className="font-bold text-[#1F2E0A]">{formatCurrency(val)}</span> },
-    { key: 'avg_msp', header: 'Govt MSP', render: (val) => <span className="font-bold text-[#5B7B10]">{formatCurrency(val)}</span> },
+  // Mandi Price Pressure Rankings Columns
+  const mandiColumns = [
     { 
-      key: 'below_msp_percentage', 
-      header: 'Below MSP %', 
+      key: 'mandi_name', 
+      header: 'Mandi Name',
+      render: (val) => <span className="font-bold text-[#1F2E0A]">{val}</span>
+    },
+    { key: 'district', header: 'District' },
+    {
+      key: 'avg_modal_price',
+      header: 'Avg Realized Price',
+      render: (val) => <span className="font-semibold text-[#1F2E0A]">{formatCurrency(val)}</span>
+    },
+    {
+      key: 'avg_msp',
+      header: 'Govt MSP Benchmark',
+      render: (val) => <span className="font-semibold text-[#5B7B10]">{formatCurrency(val)}</span>
+    },
+    {
+      key: 'avg_msp_gap',
+      header: 'Avg Shortfall',
       render: (val) => (
-        <span className={`font-extrabold ${val > 40 ? 'text-red-600' : 'text-lime-700'}`}>
-          {formatPct(val)}
+        <span className="font-bold text-rose-600">
+          -₹{Number(val || 0).toFixed(1)}/Qtl
         </span>
       )
     },
+    {
+      key: 'below_msp_percentage',
+      header: 'Below MSP Rate',
+      render: (val, row) => {
+        const rate = val ?? row?.below_msp_rate ?? 0;
+        return (
+          <span className={`font-bold ${rate > 30 ? 'text-rose-600' : 'text-[#5B7B10]'}`}>
+            {Number(rate).toFixed(1)}%
+          </span>
+        );
+      }
+    },
+    {
+      key: 'actions',
+      header: 'Action',
+      render: (_, row) => (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setSelectedMandiId(row.mandi_id);
+          }}
+          className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#5B7B10] hover:text-[#364E00] hover:underline"
+        >
+          <Building2 className="w-3.5 h-3.5" />
+          Inspect
+        </button>
+      )
+    }
+  ];
+
+  // Distressed Transactions Columns
+  const transactionColumns = [
+    { key: 'date', header: 'Date' },
+    { 
+      key: 'crop', 
+      header: 'Commodity',
+      render: (val) => <span className="font-bold text-[#1F2E0A]">{val}</span>
+    },
+    { key: 'mandi_name', header: 'Mandi Location' },
+    { key: 'district', header: 'District' },
+    {
+      key: 'modal_price',
+      header: 'Realized Price',
+      render: (val) => <span className="font-semibold text-[#1F2E0A]">{formatCurrency(val)}</span>
+    },
+    {
+      key: 'msp',
+      header: 'Govt MSP Floor',
+      render: (val) => <span className="font-semibold text-[#5B7B10]">{formatCurrency(val)}</span>
+    },
+    {
+      key: 'msp_gap',
+      header: 'Farmer Shortfall',
+      render: (_, row) => {
+        const modal = Number(row.modal_price || 0);
+        const msp = Number(row.msp || 0);
+        const shortfall = Math.max(0, msp - modal);
+        return (
+          <span className="font-extrabold text-rose-600">
+            -₹${shortfall.toFixed(1)}/Qtl
+          </span>
+        );
+      }
+    },
+    {
+      key: 'actions',
+      header: 'Action',
+      render: (_, row) => (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setSelectedMandiId(row.mandi_id);
+          }}
+          className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#5B7B10] hover:text-[#364E00] hover:underline"
+        >
+          <ExternalLink className="w-3 h-3" />
+          Mandi Detail
+        </button>
+      )
+    }
   ];
 
   return (
@@ -49,10 +165,11 @@ export default function FarmerPriceWatch() {
 
       <AIInsightPanel page="farmer_price_watch" filters={filters} />
 
-      {/* KPIs */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        {isPressureLoading ? (
+      {/* 5 Executive KPIs as per Implementation Plan */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        {isKpiLoading || isPressureLoading ? (
           <>
+            <KpiSkeleton />
             <KpiSkeleton />
             <KpiSkeleton />
             <KpiSkeleton />
@@ -60,59 +177,204 @@ export default function FarmerPriceWatch() {
           </>
         ) : (
           <>
-            <KpiCard title="Avg Modal Realization" value={formatCurrency(avgModal)} trend={3.8} icon={Coins} description="State Average Realized" />
-            <KpiCard title="Government MSP" value={formatCurrency(avgMsp)} trend={0} icon={Scale} description="Floor Price Benchmark" />
-            <KpiCard title="Below MSP Rate" value={formatPct(belowPct)} trend={-2.1} icon={AlertCircle} severity="warning" description="Records trading below floor" />
-            <KpiCard title="Highest Pressure Crop" value={cropPressure[0]?.crop || 'Wheat'} trend={45.2} icon={TrendingDown} description="Highest MSP Delta" />
+            <KpiCard
+              title="Avg Modal Realization"
+              value={formatCurrency(avgModal)}
+              trend={3.8}
+              icon={Coins}
+              description="State Average Realized"
+            />
+            <KpiCard
+              title="Govt MSP Benchmark"
+              value={formatCurrency(avgMsp)}
+              trend={0}
+              icon={Scale}
+              description="Guaranteed Floor Target"
+            />
+            <KpiCard
+              title="Average MSP Gap"
+              value={formatCurrency(avgShortfall)}
+              unit="/ Qtl"
+              trend={-4.2}
+              icon={ArrowDownRight}
+              severity="warning"
+              description="Avg Shortfall on Distressed Trades"
+            />
+            <KpiCard
+              title="Below MSP Rate"
+              value={formatPct(belowPct)}
+              trend={-2.1}
+              icon={AlertCircle}
+              severity="warning"
+              description="Transactions below floor"
+            />
+            <KpiCard
+              title="Most Affected Crop"
+              value={topPressureCrop.crop_name || topPressureCrop.crop || 'Wheat'}
+              trend={Number((topPressureCrop.below_msp_percentage || topPressureCrop.below_msp_rate || 31.9).toFixed(1))}
+              trendLabel="distress"
+              icon={TrendingDown}
+              severity="critical"
+              description={`${formatPct(topPressureCrop.below_msp_percentage || topPressureCrop.below_msp_rate)} Under MSP`}
+            />
           </>
         )}
       </div>
 
-      {/* Main Charts */}
+      {/* Main Charts: Modal Price vs MSP with Shaded Gap Area + Crops Under Pressure */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 agro-card p-5 space-y-3">
-          <div className="flex items-center justify-between border-b border-[#5B7B10]/15 pb-3">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-[#364E00]">Modal Price vs Government MSP Time Series</h3>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[#5B7B10]/15 pb-3 gap-2">
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-[#364E00]">
+                  Daily Modal Price vs MSP Benchmark
+                </h3>
+                <span className="px-2 py-0.2 rounded text-[10px] font-bold bg-[#D97706]/15 text-[#92400E]">
+                  ⭐ Realized Trend
+                </span>
+              </div>
+              <p className="text-[11px] text-[#7A8F59] mt-0.5">
+                Realized modal price trajectory tracked against statutory minimum support price floor
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#D97706]/10 text-[#D97706] border border-[#D97706]/20">
+                REALIZED: {formatCurrency(avgModal)}
+              </span>
+              <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#5B7B10]/10 text-[#5B7B10] border border-[#5B7B10]/20">
+                MSP FLOOR: {formatCurrency(avgMsp)}
+              </span>
+              <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
+                DEFICIT: -₹{Number(avgShortfall).toFixed(1)}/Qtl
+              </span>
+            </div>
           </div>
           {isMspLoading ? (
             <ChartSkeleton />
           ) : (
-            <LineChart
-              data={mspSeries}
-              xAxisKey="date"
-              series={[
-                { field: 'modal_price', label: 'Modal Price (₹/Qtl)', color: '#D97706' },
-                { field: 'msp', label: 'MSP Benchmark (₹/Qtl)', color: '#5B7B10' }
-              ]}
-              height="280px"
-            />
+            <PriceGapChart data={mspTrendData} height="310px" />
           )}
         </div>
 
-        <div className="agro-card p-5 space-y-3">
-          <div className="flex items-center justify-between border-b border-[#5B7B10]/15 pb-3">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-[#364E00]">Below MSP % by Crop</h3>
+        {/* Crops Under Pressure Breakdown */}
+        <div className="agro-card p-5 space-y-3 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between border-b border-[#5B7B10]/15 pb-3 mb-3">
+              <div>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-[#364E00]">
+                  Crops Under Pressure Breakdown
+                </h3>
+                <p className="text-[11px] text-[#7A8F59]">Below MSP rate by commodity</p>
+              </div>
+              <span className="text-[10px] text-[#5B7B10] font-bold bg-[#E8EED8] px-2 py-0.5 rounded">
+                % Below MSP
+              </span>
+            </div>
+            {isPressureLoading ? (
+              <ChartSkeleton />
+            ) : (
+              <BarChart
+                data={cropPressure}
+                xAxisKey="crop_name"
+                xKey="crop_name"
+                series={[
+                  { 
+                    field: 'below_msp_percentage', 
+                    yKey: 'below_msp_percentage', 
+                    label: 'Below MSP %', 
+                    color: {
+                      type: 'linear',
+                      x: 0,
+                      y: 0,
+                      x2: 0,
+                      y2: 1,
+                      colorStops: [
+                        { offset: 0, color: '#F59E0B' },
+                        { offset: 1, color: '#DC2626' }
+                      ]
+                    }
+                  }
+                ]}
+                height="190px"
+              />
+            )}
           </div>
-          {isPressureLoading ? (
-            <ChartSkeleton />
-          ) : (
-            <BarChart
-              data={cropPressure}
-              xAxisKey="crop"
-              series={[{ field: 'below_msp_percentage', label: 'Below MSP %' }]}
-              height="280px"
-            />
-          )}
+
+          {/* Quick Crop Pressure Summary List */}
+          <div className="space-y-1.5 pt-2 border-t border-[#5B7B10]/10">
+            {cropPressure.slice(0, 3).map((item) => (
+              <div 
+                key={item.crop_name}
+                className="flex items-center justify-between text-xs px-2.5 py-1.5 rounded-lg bg-[#F6F8EF] border border-[#5B7B10]/15 hover:bg-[#EEF2E0] transition-colors"
+              >
+                <span className="font-bold text-[#1F2E0A]">{item.crop_name}</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-[11px] text-[#526633]">
+                    Realized: <strong className="text-[#1F2E0A] font-semibold">{formatCurrency(item.avg_modal_price)}</strong>
+                  </span>
+                  <span className="font-bold text-xs text-rose-600 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded">
+                    {formatPct(item.below_msp_percentage || item.below_msp_rate)}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Price Table */}
+      {/* Interactive Tables: Mandi Price Pressure Rankings & Distressed Transactions */}
       <div className="agro-card p-5 space-y-4">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-[#364E00]">Mandi Price Pressure Rankings</h3>
-        <DataTable columns={priceColumns} data={mandiPressure} pageSize={8} onRowClick={(row) => setSelectedMandiId(row.mandi_id)} />
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-[#5B7B10]/15 pb-3">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setActiveTableTab('mandi-rankings')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all ${
+                activeTableTab === 'mandi-rankings'
+                  ? 'bg-[#5B7B10] text-white shadow-sm shadow-[#5B7B10]/20 font-bold border border-[#5B7B10]'
+                  : 'bg-[#F6F8EF] text-[#526633] border border-[#5B7B10]/20 hover:bg-[#EEF2E0] hover:text-[#1F2E0A] font-medium'
+              }`}
+            >
+              <Building2 className="w-3.5 h-3.5" />
+              Mandi Price Pressure Rankings ({mandiPressure.length})
+            </button>
+            <button
+              onClick={() => setActiveTableTab('distressed-transactions')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all ${
+                activeTableTab === 'distressed-transactions'
+                  ? 'bg-[#5B7B10] text-white shadow-sm shadow-[#5B7B10]/20 font-bold border border-[#5B7B10]'
+                  : 'bg-[#F6F8EF] text-[#526633] border border-[#5B7B10]/20 hover:bg-[#EEF2E0] hover:text-[#1F2E0A] font-medium'
+              }`}
+            >
+              <Layers className="w-3.5 h-3.5" />
+              Distressed Transactions Stream ({directoryRows.length})
+            </button>
+          </div>
+          <span className="text-xs text-[#7A8F59] font-medium">
+            Click any row to open Mandi Intelligence drawer
+          </span>
+        </div>
+
+        {activeTableTab === 'mandi-rankings' ? (
+          <DataTable
+            columns={mandiColumns}
+            data={mandiPressure}
+            pageSize={8}
+            onRowClick={(row) => setSelectedMandiId(row.mandi_id)}
+          />
+        ) : (
+          <DataTable
+            columns={transactionColumns}
+            data={directoryRows}
+            pageSize={8}
+            onRowClick={(row) => setSelectedMandiId(row.mandi_id)}
+          />
+        )}
       </div>
 
-      {selectedMandiId && <MandiDetailDrawer mandiId={selectedMandiId} onClose={() => setSelectedMandiId(null)} />}
+      {selectedMandiId && (
+        <MandiDetailDrawer mandiId={selectedMandiId} onClose={() => setSelectedMandiId(null)} />
+      )}
     </div>
   );
 }

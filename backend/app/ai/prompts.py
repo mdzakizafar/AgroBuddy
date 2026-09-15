@@ -23,7 +23,7 @@ PAGE_PROMPTS = {
     "supply_pulse": "What is happening to crop supply and arrivals across mandis?",
     "farmer_price_watch": "Where is farmer price pressure increasing relative to Government MSP?",
     "logistics_command": "Where are transportation bottlenecks occurring and how severe are delays?",
-    "weather_operations": "Are there notable environmental conditions or extreme sensor events?",
+    "weather_operations": "What environmental conditions could disrupt agricultural operations?",
     "mandi_risk": "Why are these Mandis categorized as high/medium risk?",
     "forecast_planning": "What is likely to happen next based on current trends?"
 }

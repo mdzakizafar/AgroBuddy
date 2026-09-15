@@ -2,8 +2,23 @@ import React from 'react';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 
 export default function KpiCard({ title, value, unit, trend, trendLabel, icon: Icon, severity, description }) {
-  const isPositive = typeof trend === 'number' && trend > 0;
-  const isNegative = typeof trend === 'number' && trend < 0;
+  const isCritical = severity === 'critical';
+  const isPositive = !isCritical && typeof trend === 'number' && trend > 0;
+  const isNegative = isCritical || (typeof trend === 'number' && trend < 0);
+
+  const trendColor = isCritical || isNegative
+    ? 'text-[#EF4444]'
+    : isPositive
+    ? 'text-[#65A30D]'
+    : 'text-[#7A8F59]';
+
+  const sparklineColor = isCritical || isNegative
+    ? 'text-[#EF4444]'
+    : severity === 'warning'
+    ? 'text-[#D97706]'
+    : isPositive
+    ? 'text-[#65A30D]'
+    : 'text-[#5B7B10]';
 
   return (
     <div className="agro-card p-5 flex flex-col justify-between relative overflow-hidden group">
@@ -13,7 +28,13 @@ export default function KpiCard({ title, value, unit, trend, trendLabel, icon: I
           {title}
         </span>
         {Icon && (
-          <div className="w-8 h-8 rounded-lg bg-[#5B7B10]/10 text-[#5B7B10] flex items-center justify-center group-hover:bg-[#5B7B10] group-hover:text-white transition-all">
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
+            severity === 'critical'
+              ? 'bg-rose-50 text-rose-600 group-hover:bg-rose-600 group-hover:text-white'
+              : severity === 'warning'
+              ? 'bg-amber-50 text-amber-700 group-hover:bg-amber-600 group-hover:text-white'
+              : 'bg-[#5B7B10]/10 text-[#5B7B10] group-hover:bg-[#5B7B10] group-hover:text-white'
+          }`}>
             <Icon className="w-4 h-4" />
           </div>
         )}
@@ -32,9 +53,7 @@ export default function KpiCard({ title, value, unit, trend, trendLabel, icon: I
       {/* Trend & Description */}
       <div className="flex items-center justify-between pt-2 border-t border-[#5B7B10]/10 text-xs">
         {trend !== undefined && trend !== null ? (
-          <div className={`flex items-center gap-1 font-bold ${
-            isPositive ? 'text-[#65A30D]' : isNegative ? 'text-[#EF4444]' : 'text-[#7A8F59]'
-          }`}>
+          <div className={`flex items-center gap-1 font-bold ${trendColor}`}>
             {isPositive ? (
               <TrendingUp className="w-3.5 h-3.5" />
             ) : isNegative ? (
@@ -42,7 +61,7 @@ export default function KpiCard({ title, value, unit, trend, trendLabel, icon: I
             ) : (
               <Minus className="w-3.5 h-3.5" />
             )}
-            <span>{isPositive ? `+${trend}%` : `${trend}%`}</span>
+            <span>{isPositive ? `+${trend}%` : `${trend < 0 && !trendLabel ? trend : Math.abs(trend)}%`}</span>
             {trendLabel && <span className="text-[#6B7C4B] font-normal">{trendLabel}</span>}
           </div>
         ) : (
@@ -51,7 +70,7 @@ export default function KpiCard({ title, value, unit, trend, trendLabel, icon: I
 
         {/* Small Visual Sparkline Accent */}
         <div className="w-12 h-4 opacity-40 group-hover:opacity-100 transition-opacity">
-          <svg viewBox="0 0 40 12" className="w-full h-full fill-none stroke-current text-[#5B7B10] stroke-[2]">
+          <svg viewBox="0 0 40 12" className={`w-full h-full fill-none stroke-current stroke-[2] ${sparklineColor}`}>
             <path d={isNegative ? "M0,2 Q10,10 20,4 T40,11" : "M0,10 Q10,2 20,8 T40,1"} />
           </svg>
         </div>

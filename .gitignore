@@ -25,3 +25,9 @@ frontend/dist/
 .DS_Store
 .vscode/
 .idea/
+
+# Temporary Screenshots & Agent Artifacts
+*.png
+*.webp
+brain/
+

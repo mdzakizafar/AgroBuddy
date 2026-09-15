@@ -96,3 +96,27 @@ def test_forecast_endpoint():
     assert "historical" in data
     assert len(data["forecast"]) > 0
     assert "predicted_arrival_qtl" in data["forecast"][0]
+
+
+def test_logistics_endpoints():
+    r1 = client.get("/api/v1/logistics/summary")
+    assert r1.status_code == 200
+    assert "total_trips" in r1.json()["data"]
+
+    r2 = client.get("/api/v1/logistics/transit-trend")
+    assert r2.status_code == 200
+    assert len(r2.json()["data"]) > 0
+
+    r3 = client.get("/api/v1/logistics/delays")
+    assert r3.status_code == 200
+    assert len(r3.json()["series"]) > 0
+
+    r4 = client.get("/api/v1/logistics/by-mandi")
+    assert r4.status_code == 200
+    assert len(r4.json()["by_mandi"]) > 0
+    assert len(r4.json()["routes"]) > 0
+
+    r5 = client.get("/api/v1/logistics/routes")
+    assert r5.status_code == 200
+    assert len(r5.json()["routes"]) > 0
+
