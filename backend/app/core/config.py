@@ -18,8 +18,8 @@ class Settings(BaseSettings):
     
     # Groq Configuration (Models separated as per requirement)
     GROQ_API_KEY: str = ""
-    INSIGHT_MODEL: str = "qwen/qwen3.6-27b"
-    AGENT_MODEL: str = "qwen/qwen3.6-27b"
+    INSIGHT_MODEL: str = "llama-3.3-70b-versatile"
+    AGENT_MODEL: str = "llama-3.3-70b-versatile"
 
     # LLM Cache Configuration
     REDIS_URL: str = ""

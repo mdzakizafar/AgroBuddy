@@ -72,38 +72,27 @@ class AgroBuddyAIAgent:
             try:
                 from groq import Groq
                 client = Groq(api_key=self.api_key)
-                candidate_models = list(dict.fromkeys([self.model, "qwen/qwen3.6-27b", "qwen/qwen3.8-27b", "groq/compound"]))
-                
-                completion = None
-                for model_name in candidate_models:
-                    try:
-                        completion = client.chat.completions.create(
-                            model=model_name,
-                            messages=[
-                                {"role": "system", "content": AGENT_INTENT_PROMPT},
-                                {"role": "user", "content": f"User question: {query_text}"}
-                            ],
-                            temperature=0.1,
-                            response_format={"type": "json_object"}
-                        )
-                        if completion:
-                            break
-                    except Exception as me:
-                        logger.warning(f"Groq agent model {model_name} failed: {str(me)}. Trying next...")
-
-                if completion:
-                    res = json.loads(completion.choices[0].message.content)
-                    return AgentIntent(
-                        intent_type=res.get("intent_type", "trend_comparison"),
-                        crop=res.get("crop"),
-                        mandi_id=res.get("mandi_id"),
-                        district=res.get("district"),
-                        state=res.get("state"),
-                        metrics=res.get("metrics", []),
-                        group_by=res.get("group_by"),
-                        date_range=res.get("date_range"),
-                        visualization_suggestion=res.get("visualization_suggestion")
-                    )
+                completion = client.chat.completions.create(
+                    model=self.model,
+                    messages=[
+                        {"role": "system", "content": AGENT_INTENT_PROMPT},
+                        {"role": "user", "content": f"User question: {query_text}"}
+                    ],
+                    temperature=0.1,
+                    response_format={"type": "json_object"}
+                )
+                res = json.loads(completion.choices[0].message.content)
+                return AgentIntent(
+                    intent_type=res.get("intent_type", "trend_comparison"),
+                    crop=res.get("crop"),
+                    mandi_id=res.get("mandi_id"),
+                    district=res.get("district"),
+                    state=res.get("state"),
+                    metrics=res.get("metrics", []),
+                    group_by=res.get("group_by"),
+                    date_range=res.get("date_range"),
+                    visualization_suggestion=res.get("visualization_suggestion")
+                )
             except Exception as e:
                 logger.error(f"Error extracting intent via Groq: {str(e)}")
 
