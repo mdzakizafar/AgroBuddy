@@ -22,7 +22,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy backend application code, analytics engines, ML models, and data
 COPY backend/ ./backend/
 COPY data/ ./data/
-COPY duckdb/ ./duckdb/
+RUN mkdir -p duckdb
 
 # Expose standard FastAPI port
 EXPOSE 8000
