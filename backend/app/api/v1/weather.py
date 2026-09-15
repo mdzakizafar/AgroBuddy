@@ -2,6 +2,9 @@ from typing import Optional
 from fastapi import APIRouter, Depends
 import duckdb
 
+import requests
+from fastapi import HTTPException
+
 from backend.app.db.duckdb import get_db
 from backend.app.models.common import ResponseMetadata
 from backend.app.utils.validation import validate_date_range
@@ -154,3 +157,90 @@ def get_weather_calendar(
         "metadata": meta
     }
 
+
+
+'''weather'''
+@router.get("/weather/current")
+def get_current_weather(
+    latitude: float = 30.9010,
+    longitude: float = 75.8573
+):
+    """
+    Get current weather for the Agro-Buddy dashboard.
+
+    Default location:
+    Ludhiana, Punjab, India
+
+    Can be overridden:
+    /weather/current?latitude=28.6139&longitude=77.2090
+    """
+
+    url = "https://api.open-meteo.com/v1/forecast"
+
+    params = {
+        "latitude": latitude,
+        "longitude": longitude,
+        "current": (
+            "temperature_2m,"
+            "relative_humidity_2m,"
+            "apparent_temperature,"
+            "precipitation,"
+            "rain,"
+            "weather_code,"
+            "cloud_cover,"
+            "wind_speed_10m,"
+            "is_day"
+        ),
+        "timezone": "auto",
+        "temperature_unit": "celsius",
+        "wind_speed_unit": "kmh",
+        "precipitation_unit": "mm"
+    }
+
+    try:
+        response = requests.get(
+            url,
+            params=params,
+            timeout=10
+        )
+
+        response.raise_for_status()
+
+        weather = response.json()
+
+        current = weather.get("current")
+
+        if not current:
+            raise HTTPException(
+                status_code=502,
+                detail="Weather provider returned no current weather data."
+            )
+
+        return {
+            "data": {
+                "temperature": current.get("temperature_2m"),
+                "humidity": current.get("relative_humidity_2m"),
+                "apparent_temperature": current.get(
+                    "apparent_temperature"
+                ),
+                "precipitation": current.get("precipitation"),
+                "rain": current.get("rain"),
+                "weather_code": current.get("weather_code"),
+                "cloud_cover": current.get("cloud_cover"),
+                "wind_speed": current.get("wind_speed_10m"),
+                "is_day": current.get("is_day"),
+                "time": current.get("time"),
+            },
+            "location": {
+                "latitude": latitude,
+                "longitude": longitude
+            },
+            "timezone": weather.get("timezone"),
+            "source": "Open-Meteo"
+        }
+
+    except requests.RequestException as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Unable to fetch current weather: {str(exc)}"
+        )
