@@ -244,7 +244,7 @@ AgroBuddy structures operational decisions into eight dedicated analytical views
 - Natural language to SQL execution over in-memory DuckDB, interactive dynamic chart synthesis (`VisualizationSpec`), and multi-turn strategic advice with strict anti-hallucination guardrails.
 - **Representative Views**:
 
-| 1. Query & Preset Inquiries | 2. Dynamic Chart Generation | 3. Strategic Recommendations |
+| 1. Query & Preset Inquiries | 2. Dynamic Chart Generation | 3. Agentic Graph|
 | :---: | :---: | :---: |
 | ![AI Chatbot Query](images/Ai%20Chatbot%201.png) | ![AI Chatbot Chart Generation](images/AI%20Chatbot%202.png) | ![AI Chatbot Insights](images/AI%20Chatbot%203.png) |
 
