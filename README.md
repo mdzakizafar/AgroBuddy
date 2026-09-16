@@ -239,7 +239,7 @@ AgroBuddy structures operational decisions into eight dedicated analytical views
 
 ---
 
-### 08 — Ask AgroBuddy AI Copilot (`/agent`)
+### 08 — Ask AgroBuddy AI Copilot
 > *"How can agricultural officers query data and generate instant visual analytics in plain English?"*
 - Natural language to SQL execution over in-memory DuckDB, interactive dynamic chart synthesis (`VisualizationSpec`), and multi-turn strategic advice with strict anti-hallucination guardrails.
 - **Representative Views**:
