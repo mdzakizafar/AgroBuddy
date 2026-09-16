@@ -1,10 +1,12 @@
 # 🌾 AgroBuddy
 ### Mandi-to-Market Supply Chain Optimizer
 
+> 🚀 **Live Production Deployment:** [https://agro-buddy-psi.vercel.app/](https://agro-buddy-psi.vercel.app/)  
 > *From fragmented mandi records to operational intelligence.*
 
-[Dashboard](#-seven-views-seven-questions) • [Architecture](#-the-system-behind-the-dashboard) • [Data Rescue](#-data-rescue) • [AI Agent](#-two-ai-brains-two-jobs) • [Reproducibility](#%EF%B8%8F-can-you-rebuild-our-numbers)
+[Live Demo](https://agro-buddy-psi.vercel.app/) • [Dashboard](#-eight-core-views--intelligent-capabilities) • [Architecture](#-the-system-behind-the-dashboard) • [Data Rescue](#-data-rescue) • [AI Agent](#-two-ai-brains-two-jobs) • [Reproducibility](#%EF%B8%8F-can-you-rebuild-our-numbers)
 
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-agro--buddy--psi.vercel.app-2ea44f?style=for-the-badge&logo=vercel)](https://agro-buddy-psi.vercel.app/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688.svg?style=flat-square&logo=fastapi)](https://fastapi.tiangolo.com/)
 [![React 19](https://img.shields.io/badge/React-19.0+-61DAFB.svg?style=flat-square&logo=react)](https://react.dev/)
 [![DuckDB](https://img.shields.io/badge/DuckDB-1.0+-FFF000.svg?style=flat-square&logo=duckdb)](https://duckdb.org/)
@@ -170,9 +172,9 @@ flowchart TD
 
 ---
 
-# 🧭 Seven Views. Seven Questions.
+# 🧭 Eight Core Views & Intelligent Capabilities
 
-AgroBuddy structures operational decisions into seven dedicated analytical views:
+AgroBuddy structures operational decisions into eight dedicated analytical views:
 
 ### 01 — Command Center
 > *"What needs attention right now?"*
@@ -237,6 +239,17 @@ AgroBuddy structures operational decisions into seven dedicated analytical views
 
 ---
 
+### 08 — Ask AgroBuddy AI Copilot (`/agent`)
+> *"How can agricultural officers query data and generate instant visual analytics in plain English?"*
+- Natural language to SQL execution over in-memory DuckDB, interactive dynamic chart synthesis (`VisualizationSpec`), and multi-turn strategic advice with strict anti-hallucination guardrails.
+- **Representative Views**:
+
+| 1. Query & Preset Inquiries | 2. Dynamic Chart Generation | 3. Strategic Recommendations |
+| :---: | :---: | :---: |
+| ![AI Chatbot Query](images/Ai%20Chatbot%201.png) | ![AI Chatbot Chart Generation](images/AI%20Chatbot%202.png) | ![AI Chatbot Insights](images/AI%20Chatbot%203.png) |
+
+---
+
 # 📐 The Numbers Behind the Pictures
 
 All business metrics in AgroBuddy are computed deterministically in the backend analytics engine:
@@ -246,7 +259,7 @@ $$\text{MSP Gap} = \text{MSP} - \text{Modal Price}$$
 Measures the exact per-quintal financial loss to farmers when market realization falls below floor price.
 
 ### 2. Below-MSP Flag
-$$\text{is\_below\_msp} = \begin{cases} 1 & \text{if } \text{Modal Price} < \text{MSP} \\ 0 & \text{otherwise} \end{cases}$$
+$$\text{Distress Flag (Below-MSP)} = \begin{cases} 1 & \text{if } \text{Modal Price} < \text{MSP} \\ 0 & \text{otherwise} \end{cases}$$
 
 ### 3. Arrival Volatility (Coefficient of Variation)
 $$CV = \frac{\sigma(\text{Daily Arrivals})}{\mu(\text{Daily Arrivals})}$$
@@ -432,11 +445,11 @@ Four forecasting candidates were trained and logged in MLflow (`sqlite:///mlflow
 - **Alias**: `@champion`
 - **Artifact Path**: `backend/app/ml/artifacts/best_model.pkl`
 
-### MLflow Tracking & Registry Screenshots
+### MLflow Tracking, Model Evaluation & Registry Screenshots
 
-| Experiment Tracking | Model Registry |
-| :---: | :---: |
-| ![Experiment Tracking](images/Experiment%20Conducted.png) | ![Model Registry](images/Model%20Registry.png) |
+| 1. Experiment Tracking | 2. Model Evaluation & Metrics | 3. Model Registry (@champion) |
+| :---: | :---: | :---: |
+| ![Experiment Tracking](images/Experiment%20Conducted.png) | ![Model Evaluation](images/Model%20Evaluation.png) | ![Model Registry](images/Model%20Registry.png) |
 
 ---
 
