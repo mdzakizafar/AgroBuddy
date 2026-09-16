@@ -26,11 +26,15 @@ export default function Header({ pageTitle, onRefresh, isRefreshing, onOpenMobil
           <h2 className="text-lg sm:text-xl md:text-2xl font-bold font-['Outfit'] text-[#1F2E0A] tracking-tight truncate">
             {pageTitle}
           </h2>
-          <div className="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs font-medium text-[#6B7C4B] mt-0.5 truncate">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs font-medium text-[#6B7C4B] mt-0.5">
             <Calendar className="w-3.5 h-3.5 text-[#5B7B10] shrink-0" />
-            <span className="truncate">{currentDate}</span>
-            <span className="text-[#364E00]/30 hidden sm:inline">•</span>
-            <span className="text-[#5B7B10] font-semibold hidden sm:inline truncate">State Agriculture Command Center</span>
+            <span className="text-[#1F2E0A] font-semibold">Dashboard: {currentDate}</span>
+            <span className="text-[#364E00]/30">•</span>
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#E9EDDA] text-[#364E00] border border-[#5B7B10]/20">
+              Data Available Through: 09 Sep 2026
+            </span>
+            <span className="text-[#364E00]/30 hidden md:inline">•</span>
+            <span className="text-[#5B7B10] font-semibold hidden md:inline truncate">State Agriculture Command Center</span>
           </div>
         </div>
       </div>

@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     REDIS_URL: str = ""
     LLM_CACHE_ENABLED: bool = True
     LLM_INSIGHT_CACHE_TTL_SECONDS: int = 900
-    INSIGHT_PROMPT_VERSION: str = "v2"
+    INSIGHT_PROMPT_VERSION: str = "v3"
     AGENT_PROMPT_VERSION: str = "v2"
 
     model_config = SettingsConfigDict(

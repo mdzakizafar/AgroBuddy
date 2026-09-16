@@ -29,4 +29,7 @@ class ForecastResponse(BaseModel):
     historical: List[HistoricalItem] = []
     forecast: List[ForecastItem] = []
     data: List[ForecastItem] = []
+    commodity_signals: List[Dict[str, Any]] = []
+    planning_recommendations: List[Dict[str, Any]] = []
     metadata: ResponseMetadata
+

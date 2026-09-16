@@ -13,9 +13,9 @@ export default function MandiPerformanceMatrix({ mandis = [], onSelectMandi, hei
       const vol = m.arrival_volume ?? 0;
       const risk = m.risk_score ?? 0;
       const level = (m.risk_level || 'Medium').toLowerCase();
-      let color = '#5B7B10'; // Green for Low risk
-      if (level === 'critical' || level === 'high' || risk >= 75) color = '#DC2626'; // Red for High/Critical
-      else if (level === 'medium' || level === 'warning' || risk >= 50) color = '#D97706'; // Yellow/Amber for Medium
+      let color = '#15803D'; // Agro Forest Green for Low / Baseline Risk
+      if (level === 'critical' || level === 'high' || risk >= 75) color = '#991B1B'; // Deep Bordeaux Cabernet for Critical Market Distress
+      else if (level === 'medium' || level === 'warning' || risk >= 50) color = '#C2410C'; // Terracotta Ochre for Watchlist / Moderate Strain
 
       return {
         name: m.mandi_name,
@@ -24,8 +24,8 @@ export default function MandiPerformanceMatrix({ mandis = [], onSelectMandi, hei
           color,
           borderColor: '#FFFFFF',
           borderWidth: 1.5,
-          shadowBlur: 6,
-          shadowColor: `${color}66`
+          shadowBlur: 7,
+          shadowColor: `${color}55`
         }
       };
     });
@@ -34,11 +34,12 @@ export default function MandiPerformanceMatrix({ mandis = [], onSelectMandi, hei
       backgroundColor: 'transparent',
       tooltip: {
         trigger: 'item',
+        confine: true,
         backgroundColor: '#FFFFFF',
         borderColor: 'rgba(91, 123, 16, 0.25)',
         borderWidth: 1,
         padding: [10, 14],
-        textStyle: { color: '#1F2E0A', fontSize: 12, fontFamily: 'Plus Jakarta Sans, sans-serif' },
+        textStyle: { color: '#1F2E0A', fontSize: 12, fontFamily: 'Outfit, sans-serif' },
         formatter: (params) => {
           const val = params.value;
           if (!val) return '';
@@ -46,14 +47,14 @@ export default function MandiPerformanceMatrix({ mandis = [], onSelectMandi, hei
           const volFormatted = (vol / 1000).toFixed(1);
           const delayHrs = m.logistics_delay_hours ? `${m.logistics_delay_hours}h` : `${l}`;
 
-          let badgeBg = '#FEF3C7';
-          let badgeColor = '#92400E';
+          let badgeBg = '#FFEDD5';
+          let badgeColor = '#9A3412';
           if (level.toLowerCase() === 'critical' || level.toLowerCase() === 'high') {
             badgeBg = '#FEE2E2';
             badgeColor = '#991B1B';
           } else if (level.toLowerCase() === 'low') {
-            badgeBg = '#EBF0DC';
-            badgeColor = '#364E00';
+            badgeBg = '#DCFCE7';
+            badgeColor = '#166534';
           }
 
           return `
@@ -131,6 +132,16 @@ export default function MandiPerformanceMatrix({ mandis = [], onSelectMandi, hei
             const norm = Math.sqrt(rawVol) / 30;
             return Math.max(11, Math.min(30, Math.round(norm)));
           },
+          emphasis: {
+            focus: 'series',
+            scale: true,
+            itemStyle: {
+              borderWidth: 2.5,
+              borderColor: '#FFFFFF',
+              shadowBlur: 14,
+              shadowColor: 'rgba(0, 0, 0, 0.35)'
+            }
+          },
           data: points,
           markLine: {
             silent: true,
@@ -161,12 +172,12 @@ export default function MandiPerformanceMatrix({ mandis = [], onSelectMandi, hei
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#5B7B10]/15 pb-3">
           <div>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-[#364E00] flex items-center gap-1.5">
+            <h3 className="text-sm font-bold uppercase tracking-wider text-[#364E00] flex items-center gap-2 font-['Outfit']">
               <Activity className="w-4 h-4 text-[#5B7B10]" />
               Mandi Performance Matrix
             </h3>
-            <p className="text-[11px] text-[#7A8F59] mt-0.5">
-              X: Price Pressure | Y: Logistics Delay | Bubble size: Arrival Volume | Color: Risk Level
+            <p className="text-xs text-[#6B7C4B] mt-0.5">
+              X: Price Pressure Score | Y: Logistics Delay Score | Bubble Size: Arrival Volume | Color: Risk Level
             </p>
           </div>
         <span className="text-[10px] font-medium text-[#7A8F59] bg-[#F4F6EC] px-2.5 py-1 rounded-lg border border-[#5B7B10]/15">
@@ -175,18 +186,18 @@ export default function MandiPerformanceMatrix({ mandis = [], onSelectMandi, hei
       </div>
 
       {/* Legend Strip */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-[#6B7C4B] bg-[#F4F6EC] px-3 py-1.5 rounded-lg border border-[#5B7B10]/15">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-[#526633] bg-[#F7F9F2] px-3 py-1.5 rounded-lg border border-[#5B7B10]/20">
         <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-[#DC2626] inline-block" />
-          <span className="font-semibold text-[#1F2E0A]">Critical / High Risk (&ge;75)</span>
+          <span className="w-2.5 h-2.5 rounded-full bg-[#991B1B] inline-block" />
+          <span className="font-semibold text-[#1F2E0A]">Critical Market Distress (&ge;75)</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-[#D97706] inline-block" />
-          <span className="font-semibold text-[#1F2E0A]">Medium Risk (50-74)</span>
+          <span className="w-2.5 h-2.5 rounded-full bg-[#C2410C] inline-block" />
+          <span className="font-semibold text-[#1F2E0A]">Moderate Strain / Watchlist (50–74)</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-[#5B7B10] inline-block" />
-          <span className="font-semibold text-[#1F2E0A]">Low / Normal Risk (&lt;50)</span>
+          <span className="w-2.5 h-2.5 rounded-full bg-[#15803D] inline-block" />
+          <span className="font-semibold text-[#1F2E0A]">Operational Baseline (&lt;50)</span>
         </div>
         <span className="text-[#A3B882] hidden sm:inline">|</span>
         <span className="text-[10px] text-[#7A8F59]">Bubble Size = Throughput (Qtl)</span>

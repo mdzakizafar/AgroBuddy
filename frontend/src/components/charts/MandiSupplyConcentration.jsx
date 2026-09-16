@@ -1,117 +1,237 @@
-import React from 'react';
-import { BarChart3, ArrowUpRight, PieChart, Layers } from 'lucide-react';
+import React, { useMemo } from 'react';
+import ReactECharts from 'echarts-for-react';
+import { PieChart, ArrowUpRight, BarChart3, TrendingUp } from 'lucide-react';
 import { formatQtl } from '../../lib/formatters';
 
-export default function MandiSupplyConcentration({ mandis = [], onSelectMandi, onViewAll }) {
-  const displayMandis = mandis.slice(0, 5);
-  const maxShare = displayMandis.length > 0 ? Math.max(...displayMandis.map((m) => m.share_percentage || 0)) : 10;
-  
-  // Calculate cumulative top 5 share
-  const totalTop5Share = displayMandis.reduce((sum, m) => sum + (m.share_percentage || 0), 0);
+export default function MandiSupplyConcentration({ mandis = [], onSelectMandi, onViewAll, height = '230px', dark = false }) {
+  const displayMandis = useMemo(() => {
+    return (mandis || []).slice(0, 5);
+  }, [mandis]);
+
+  // Cumulative top 5 share
+  const totalTop5Share = useMemo(() => {
+    return displayMandis.reduce((sum, m) => sum + (m.share_percentage || 0), 0);
+  }, [displayMandis]);
+
+  // ECharts Horizontal Bar Option
+  const chartOption = useMemo(() => {
+    if (!displayMandis || displayMandis.length === 0) return {};
+
+    // Reverse so #1 top mandi appears at the top of the horizontal bar chart
+    const reversed = [...displayMandis].reverse();
+    const categories = reversed.map((m) => {
+      const short = (m.mandi_name || 'Mandi').replace(/APMC|Grain Market|Market|Mandi/gi, '').trim();
+      return short || m.mandi_name;
+    });
+    const shares = reversed.map((m) => Number((m.share_percentage || 0).toFixed(1)));
+
+    return {
+      backgroundColor: 'transparent',
+      tooltip: {
+        trigger: 'axis',
+        confine: true,
+        backgroundColor: dark ? '#172208' : '#FFFFFF',
+        borderColor: dark ? '#2D3F14' : '#E2E8F0',
+        borderWidth: 1,
+        padding: [10, 14],
+        shadowBlur: 10,
+        shadowColor: 'rgba(0, 0, 0, 0.25)',
+        textStyle: { color: dark ? '#F8FAFC' : '#0F172A', fontSize: 12, fontFamily: 'Outfit, sans-serif' },
+        axisPointer: { type: 'shadow', shadowStyle: { color: dark ? 'rgba(132, 204, 22, 0.08)' : 'rgba(91, 123, 16, 0.05)' } },
+        formatter: (params) => {
+          if (!params || params.length === 0) return '';
+          const idx = params[0].dataIndex;
+          const mandi = reversed[idx];
+          if (!mandi) return '';
+
+          return `
+            <div style="font-family: Outfit, sans-serif; min-width: 190px;">
+              <div style="font-weight: 700; font-size: 13px; color: ${dark ? '#FFFFFF' : '#1F2E0A'}; margin-bottom: 2px;">
+                ${mandi.mandi_name}
+              </div>
+              <div style="font-size: 11px; color: ${dark ? '#8FA866' : '#7A8F59'}; margin-bottom: 6px;">
+                ${mandi.district ? `${mandi.district}, ` : ''}${mandi.state || ''}
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 4px; font-size: 11px; border-top: 1px dashed ${dark ? 'rgba(132,204,22,0.25)' : 'rgba(91,123,16,0.2)'}; padding-top: 6px;">
+                <div style="display: flex; justify-content: space-between; gap: 12px;">
+                  <span style="color: ${dark ? '#A3B882' : '#6B7C4B'};">Arrival Volume:</span>
+                  <strong style="color: ${dark ? '#FFFFFF' : '#1F2E0A'};">${formatQtl(mandi.arrival_qtl)}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; gap: 12px;">
+                  <span style="color: #84CC16; font-weight: 600;">State Share:</span>
+                  <strong style="color: ${dark ? '#84CC16' : '#2A3B0F'}; font-size: 12px;">${(mandi.share_percentage || 0).toFixed(1)}%</strong>
+                </div>
+              </div>
+              <div style="margin-top: 6px; text-align: center; font-size: 10px; color: #84CC16; font-weight: 700;">
+                Click to inspect mandi drawer &rarr;
+              </div>
+            </div>
+          `;
+        }
+      },
+      grid: {
+        top: 10,
+        left: 8,
+        right: 46,
+        bottom: 8,
+        containLabel: true
+      },
+      xAxis: {
+        type: 'value',
+        axisLine: { show: false },
+        axisTick: { show: false },
+        splitLine: { lineStyle: { color: dark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(91, 123, 16, 0.08)', type: 'dashed' } },
+        axisLabel: {
+          color: dark ? '#8FA866' : '#7A8F59',
+          fontSize: 10,
+          formatter: '{value}%'
+        }
+      },
+      yAxis: {
+        type: 'category',
+        data: categories,
+        axisLine: { lineStyle: { color: dark ? '#2D3F14' : '#E2E8F0' } },
+        axisTick: { show: false },
+        axisLabel: {
+          color: dark ? '#E2E8F0' : '#1F2E0A',
+          fontSize: 11,
+          fontWeight: 600,
+          fontFamily: 'Outfit, sans-serif'
+        }
+      },
+      series: [
+        {
+          name: 'Market Share',
+          type: 'bar',
+          barWidth: 16,
+          data: shares,
+          itemStyle: {
+            borderRadius: [0, 6, 6, 0],
+            color: {
+              type: 'linear',
+              x: 0,
+              y: 0,
+              x2: 1,
+              y2: 0,
+              colorStops: [
+                { offset: 0, color: '#5B7B10' },
+                { offset: 1, color: '#84CC16' }
+              ]
+            }
+          },
+          emphasis: {
+            itemStyle: {
+              color: {
+                type: 'linear',
+                x: 0,
+                y: 0,
+                x2: 1,
+                y2: 0,
+                colorStops: [
+                  { offset: 0, color: '#364E00' },
+                  { offset: 1, color: '#A3E635' }
+                ]
+              },
+              shadowBlur: 10,
+              shadowColor: 'rgba(132, 204, 22, 0.5)'
+            }
+          },
+          label: {
+            show: true,
+            position: 'right',
+            color: dark ? '#A3E635' : '#364E00',
+            fontSize: 11,
+            fontWeight: 800,
+            fontFamily: 'Outfit, sans-serif',
+            formatter: '{c}%'
+          }
+        }
+      ]
+    };
+  }, [displayMandis, dark]);
+
+  const onChartClick = (params) => {
+    if (params.dataIndex !== undefined) {
+      const reversed = [...displayMandis].reverse();
+      const selected = reversed[params.dataIndex];
+      if (selected && onSelectMandi) {
+        onSelectMandi(selected.mandi_id, selected);
+      }
+    }
+  };
 
   return (
-    <div className="agro-card p-5 space-y-4 flex flex-col justify-between h-full">
+    <div className={`p-5 space-y-3.5 flex flex-col justify-between h-full rounded-2xl ${
+      dark 
+        ? 'bg-[#172208] text-white border border-[#2D3F14] shadow-xl' 
+        : 'agro-card border-[#5B7B10]/20'
+    }`}>
       <div>
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[#5B7B10]/15 pb-3">
+        <div className={`flex items-center justify-between border-b pb-3 ${dark ? 'border-[#2D3F14]' : 'border-[#5B7B10]/15'}`}>
           <div>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-[#364E00] flex items-center gap-2">
-              <PieChart className="w-4 h-4 text-[#5B7B10]" />
-              Mandi Supply Concentration
+            <h3 className={`text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 font-['Outfit'] ${
+              dark ? 'text-white' : 'text-[#364E00]'
+            }`}>
+              <PieChart className="w-4 h-4 text-[#84CC16]" />
+              Supply Concentration
             </h3>
-            <p className="text-[11px] text-[#7A8F59] mt-0.5">
-              Throughput concentration share (% of total state arrival volume)
+            <p className={`text-[11px] mt-0.5 ${dark ? 'text-[#8FA866]' : 'text-[#7A8F59]'}`}>
+              Throughput concentration (% of state intake volume)
             </p>
           </div>
-          <span className="text-[10px] font-bold text-[#364E00] bg-[#F4F6EC] px-2.5 py-1 rounded-lg border border-[#5B7B10]/15">
-            Top 5 Mandis
+          <span className={`text-[10px] font-bold px-2.5 py-1 rounded-lg border shrink-0 ${
+            dark 
+              ? 'text-[#84CC16] bg-[#22330D] border-[#2D3F14]' 
+              : 'text-[#364E00] bg-[#F4F6EC] border-[#5B7B10]/15'
+          }`}>
+            Top 5 Hubs
           </span>
         </div>
 
         {/* Top 5 Cumulative Insight Banner */}
-        <div className="mt-3 p-2.5 bg-[#F4F6EC] rounded-xl border border-[#5B7B10]/15 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 text-xs">
+        <div className={`mt-3 p-2.5 rounded-xl border flex items-center justify-between gap-3 text-xs ${
+          dark 
+            ? 'bg-[#1F2E0A] border-[#2D3F14]' 
+            : 'bg-[#F4F6EC] border-[#5B7B10]/15'
+        }`}>
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-[#84CC16] animate-pulse" />
-            <span className="text-[11px] font-semibold text-[#1F2E0A]">
-              Top 5 Hubs Process <strong className="text-[#364E00] font-extrabold">{totalTop5Share.toFixed(1)}%</strong> of State Output
+            <span className="w-2 h-2 rounded-full bg-[#84CC16] animate-pulse shrink-0 shadow-[0_0_6px_#84CC16]" />
+            <span className={`text-[11px] font-semibold ${dark ? 'text-[#E2E8F0]' : 'text-[#1F2E0A]'}`}>
+              Top 5 APMCs Process <strong className="text-[#84CC16] font-extrabold font-mono">{totalTop5Share.toFixed(1)}%</strong> of State Output
             </span>
           </div>
-          <div className="w-full sm:w-24 bg-[#EBF0DC] h-2 rounded-full overflow-hidden shrink-0 border border-[#5B7B10]/10">
+          <div className={`w-20 h-2 rounded-full overflow-hidden shrink-0 border ${
+            dark ? 'bg-[#2D3F14] border-[#3E561C]' : 'bg-[#EBF0DC] border-[#5B7B10]/10'
+          }`}>
             <div 
               className="h-full bg-gradient-to-r from-[#5B7B10] to-[#84CC16] rounded-full" 
-              style={{ width: `${Math.min(100, totalTop5Share)}%` }}
+              style={{ width: `${Math.min(100, totalTop5Share * 5)}%` }}
             />
           </div>
         </div>
 
-        {/* Horizontal Bars List */}
-        <div className="space-y-2.5 pt-3">
-          {displayMandis.map((m, idx) => {
-            const share = m.share_percentage ?? 0;
-            const barWidth = maxShare > 0 ? Math.max(6, Math.min(100, (share / maxShare) * 100)) : 10;
-            const volumeFormatted = formatQtl(m.arrival_qtl);
-
-            // Rank badge styles
-            let rankBadgeClass = "bg-[#EBF0DC] text-[#364E00] border-[#5B7B10]/20";
-            if (idx === 0) rankBadgeClass = "bg-amber-100 text-amber-900 border-amber-300 font-black shadow-2xs";
-            else if (idx === 1) rankBadgeClass = "bg-slate-100 text-slate-800 border-slate-300 font-bold";
-            else if (idx === 2) rankBadgeClass = "bg-orange-100 text-orange-900 border-orange-300 font-bold";
-
-            return (
-              <div
-                key={m.mandi_id || idx}
-                onClick={() => onSelectMandi && onSelectMandi(m.mandi_id)}
-                className="group cursor-pointer rounded-xl p-2 transition-all duration-200 hover:bg-[#F6F8EF] hover:shadow-xs border border-transparent hover:border-[#5B7B10]/15"
-                title={`${m.mandi_name}: ${share}% share (${volumeFormatted})`}
-              >
-                <div className="flex items-center justify-between text-xs font-bold text-[#1F2E0A] mb-1.5">
-                  <div className="flex items-center gap-2 truncate">
-                    <span className={`w-5 h-5 rounded-md text-[10px] flex items-center justify-center border ${rankBadgeClass} shrink-0`}>
-                      {idx + 1}
-                    </span>
-                    <div className="truncate">
-                      <span className="group-hover:text-[#364E00] group-hover:underline truncate block">
-                        {m.mandi_name}
-                      </span>
-                    </div>
-                    {m.district && (
-                      <span className="text-[10px] text-[#7A8F59] font-normal truncate hidden sm:inline">
-                        ({m.district})
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-[11px] text-[#526633] font-mono font-medium">
-                      {volumeFormatted}
-                    </span>
-                    <span className="text-[11px] font-extrabold font-mono text-[#2A3B0F] bg-[#84CC16]/25 px-2 py-0.5 rounded-md border border-[#84CC16]/40">
-                      {share.toFixed(1)}%
-                    </span>
-                  </div>
-                </div>
-
-                {/* Progress Bar Track */}
-                <div className="w-full bg-[#EBF0DC] h-2.5 rounded-full overflow-hidden p-0.5 border border-[#5B7B10]/10">
-                  <div
-                    className="h-full rounded-full transition-all duration-500 bg-gradient-to-r from-[#5B7B10] via-[#7E9E1E] to-[#84CC16] group-hover:brightness-110 shadow-2xs"
-                    style={{ width: `${barWidth}%` }}
-                  />
-                </div>
-              </div>
-            );
-          })}
+        {/* Re-planned ECharts Horizontal Bar Graph */}
+        <div className="pt-2 w-full">
+          <ReactECharts
+            option={chartOption}
+            notMerge={true}
+            style={{ height, width: '100%' }}
+            onEvents={{ click: onChartClick }}
+          />
         </div>
       </div>
 
       {/* Footer Link */}
-      <div className="pt-3 border-t border-[#5B7B10]/10 flex items-center justify-between text-xs">
-        <span className="text-[10px] text-[#7A8F59]">
-          Showing top 5 processing hubs
+      <div className={`pt-2 border-t flex items-center justify-between text-xs ${dark ? 'border-[#2D3F14]' : 'border-[#5B7B10]/10'}`}>
+        <span className={`text-[10px] ${dark ? 'text-[#8FA866]' : 'text-[#7A8F59]'}`}>
+          Click any bar to inspect mandi drawer
         </span>
         <button
           onClick={onViewAll}
-          className="text-xs font-bold text-[#5B7B10] hover:text-[#364E00] flex items-center gap-1 transition-colors"
+          className={`text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer ${
+            dark ? 'text-[#84CC16] hover:text-[#A3E635]' : 'text-[#5B7B10] hover:text-[#364E00]'
+          }`}
         >
           <span>View all mandis</span>
           <ArrowUpRight className="w-3.5 h-3.5" />

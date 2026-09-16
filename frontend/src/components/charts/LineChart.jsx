@@ -18,7 +18,9 @@ export default function LineChart({
   yMax2 = null,
   yAxisFormatter1 = null,
   yAxisFormatter2 = null,
-  enableZoom = true
+  enableZoom = true,
+  showLegend = true,
+  dark = false
 }) {
   if (!data || data.length === 0) return null;
 
@@ -73,9 +75,13 @@ export default function LineChart({
     return val;
   };
 
+  const palette = dark 
+    ? ['#84CC16', '#38BDF8', '#F59E0B', '#34D399', '#A855F7', '#EC4899'] 
+    : DEFAULT_COLORS;
+
   const seriesColors = series.map((s, idx) => {
-    if (s.color) return typeof s.color === 'string' ? s.color : (s.color.colorStops?.[0]?.color || DEFAULT_COLORS[idx % DEFAULT_COLORS.length]);
-    return DEFAULT_COLORS[idx % DEFAULT_COLORS.length];
+    if (s.color) return typeof s.color === 'string' ? s.color : (s.color.colorStops?.[0]?.color || palette[idx % palette.length]);
+    return palette[idx % palette.length];
   });
 
   const seriesOptions = series.map((s, idx) => {
@@ -90,11 +96,22 @@ export default function LineChart({
       showSymbol: sType === 'line' ? (s.showSymbol ?? (data.length <= 15)) : undefined,
       yAxisIndex: s.yAxisIndex || 0,
       barWidth: sType === 'bar' ? (s.barWidth || '36%') : undefined,
+      emphasis: {
+        focus: 'series',
+        itemStyle: {
+          borderWidth: 2,
+          borderColor: dark ? '#172208' : '#FFFFFF',
+          shadowBlur: 10,
+          shadowColor: typeof sColor === 'string' ? sColor : '#84CC16'
+        }
+      },
       lineStyle: sType === 'line'
         ? {
             width: s.width || 2.5,
             type: s.lineType || 'solid',
-            color: sColor
+            color: sColor,
+            shadowColor: dark ? (typeof sColor === 'string' ? `${sColor}40` : 'rgba(0,0,0,0.4)') : undefined,
+            shadowBlur: dark ? 6 : undefined
           }
         : undefined,
       itemStyle: {
@@ -104,7 +121,7 @@ export default function LineChart({
       areaStyle: sType === 'line' && s.isArea
         ? {
             origin: s.areaOrigin || 'auto',
-            opacity: s.areaOpacity !== undefined ? s.areaOpacity : 0.15,
+            opacity: s.areaOpacity !== undefined ? s.areaOpacity : (dark ? 0.22 : 0.15),
             color: s.areaColor || {
               type: 'linear',
               x: 0,
@@ -113,7 +130,7 @@ export default function LineChart({
               y2: 1,
               colorStops: [
                 { offset: 0, color: sColor },
-                { offset: 1, color: 'rgba(255, 255, 255, 0.0)' }
+                { offset: 1, color: 'rgba(0, 0, 0, 0.0)' }
               ]
             }
           }
@@ -122,7 +139,7 @@ export default function LineChart({
     };
   });
 
-  const shouldRotate = categories.length > 7;
+  const shouldRotate = false;
 
   const yAxisConfig = dualAxis
     ? [
@@ -131,12 +148,12 @@ export default function LineChart({
           name: yAxisName1,
           min: yMin != null ? yMin : undefined,
           max: yMax != null ? yMax : undefined,
-          nameTextStyle: { color: '#64748B', fontSize: 10, fontWeight: 'bold' },
-          splitLine: { lineStyle: { color: '#F1F5F9', type: 'dashed' } },
+          nameTextStyle: { color: dark ? '#94A3B8' : '#64748B', fontSize: 10, fontWeight: 'bold' },
+          splitLine: { lineStyle: { color: dark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(91, 123, 16, 0.08)', type: 'dashed' } },
           axisLine: { show: false },
           axisTick: { show: false },
           axisLabel: {
-            color: '#64748B',
+            color: dark ? '#94A3B8' : '#64748B',
             fontSize: 10,
             formatter: yAxisFormatter1 || yAxisFormatter || ((v) => formatMetricValue(v))
           }
@@ -146,12 +163,12 @@ export default function LineChart({
           name: yAxisName2,
           min: yMin2 != null ? yMin2 : undefined,
           max: yMax2 != null ? yMax2 : undefined,
-          nameTextStyle: { color: '#64748B', fontSize: 10, fontWeight: 'bold' },
+          nameTextStyle: { color: dark ? '#94A3B8' : '#64748B', fontSize: 10, fontWeight: 'bold' },
           splitLine: { show: false },
           axisLine: { show: false },
           axisTick: { show: false },
           axisLabel: {
-            color: '#64748B',
+            color: dark ? '#94A3B8' : '#64748B',
             fontSize: 10,
             formatter: yAxisFormatter2 || ((v) => formatMetricValue(v))
           }
@@ -161,11 +178,11 @@ export default function LineChart({
         type: 'value',
         min: yMin != null ? yMin : undefined,
         max: yMax != null ? yMax : undefined,
-        splitLine: { lineStyle: { color: '#F1F5F9', type: 'dashed' } },
+        splitLine: { lineStyle: { color: dark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(91, 123, 16, 0.08)', type: 'dashed' } },
         axisLine: { show: false },
         axisTick: { show: false },
         axisLabel: {
-          color: '#64748B',
+          color: dark ? '#94A3B8' : '#64748B',
           fontSize: 10,
           formatter: yAxisFormatter || ((v) => formatMetricValue(v))
         }
@@ -176,20 +193,21 @@ export default function LineChart({
     color: seriesColors,
     tooltip: {
       trigger: 'axis',
-      backgroundColor: '#FFFFFF',
-      borderColor: '#E2E8F0',
+      confine: true,
+      backgroundColor: dark ? '#172208' : '#FFFFFF',
+      borderColor: dark ? '#2D3F14' : '#E2E8F0',
       borderWidth: 1,
       padding: [10, 14],
-      shadowBlur: 12,
-      shadowColor: 'rgba(0, 0, 0, 0.08)',
-      textStyle: { color: '#0F172A', fontSize: 12, fontFamily: 'Outfit, sans-serif' },
+      shadowBlur: 14,
+      shadowColor: dark ? 'rgba(0, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.08)',
+      textStyle: { color: dark ? '#F8FAFC' : '#0F172A', fontSize: 12, fontFamily: 'Outfit, sans-serif' },
       formatter: (params) => {
         if (!params || params.length === 0) return '';
         const idx = params[0].dataIndex;
         const fullDate = rawDates[idx] || params[0].name || '';
         let html = `
-          <div style="font-family: inherit; min-width: 190px;">
-            <div style="font-weight: 700; color: #1E293B; margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid #F1F5F9; font-size: 12px;">
+          <div style="font-family: Outfit, sans-serif; min-width: 190px;">
+            <div style="font-weight: 700; color: ${dark ? '#FFFFFF' : '#1E293B'}; margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid ${dark ? '#2D3F14' : '#F1F5F9'}; font-size: 12px;">
               ${fullDate}
             </div>
             <div style="display: flex; flex-direction: column; gap: 4px;">
@@ -197,14 +215,14 @@ export default function LineChart({
         params.forEach((p) => {
           const cfg = series.find((s) => (s.label || s.field) === p.seriesName) || {};
           const valFormatted = formatMetricValue(p.value, cfg.field, p.seriesName);
-          const dotColor = typeof p.color === 'string' ? p.color : (p.color?.colorStops?.[0]?.color || '#5B7B10');
+          const dotColor = typeof p.color === 'string' ? p.color : (p.color?.colorStops?.[0]?.color || '#84CC16');
           html += `
             <div style="display: flex; justify-content: space-between; gap: 14px; align-items: center; font-size: 11px;">
-              <span style="color: #64748B; display: flex; align-items: center; gap: 5px;">
+              <span style="color: ${dark ? '#CBD5E1' : '#64748B'}; display: flex; align-items: center; gap: 5px;">
                 <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: ${dotColor};"></span>
                 ${p.seriesName}:
               </span>
-              <strong style="color: #0F172A; font-weight: 600;">${valFormatted}</strong>
+              <strong style="color: ${dotColor}; font-weight: 700;">${valFormatted}</strong>
             </div>
           `;
         });
@@ -213,35 +231,36 @@ export default function LineChart({
       }
     },
     legend: {
+      show: showLegend,
       top: 0,
       right: '2%',
       icon: 'circle',
       itemWidth: 8,
       itemHeight: 8,
-      textStyle: { color: '#475569', fontSize: 11, fontWeight: 500, fontFamily: 'Outfit, sans-serif' }
+      textStyle: { color: dark ? '#CBD5E1' : '#475569', fontSize: 11, fontWeight: 500, fontFamily: 'Outfit, sans-serif' }
     },
     grid: {
-      top: 30,
-      left: 10,
-      right: dualAxis ? 30 : 15,
-      bottom: shouldRotate ? 45 : 20,
+      top: showLegend ? 32 : 16,
+      left: 12,
+      right: dualAxis ? 32 : 24,
+      bottom: 14,
       containLabel: true
     },
     xAxis: {
       type: 'category',
       data: categories,
       boundaryGap: hasBars ? true : false,
-      axisLine: { lineStyle: { color: '#E2E8F0' } },
+      axisLine: { lineStyle: { color: dark ? '#2D3F14' : '#E2E8F0' } },
       axisTick: { show: false },
       axisLabel: {
-        color: '#475569',
+        color: dark ? '#94A3B8' : '#475569',
         fontSize: 10,
         fontWeight: 500,
-        interval: categories.length > 20 ? Math.floor(categories.length / 10) : 0,
-        rotate: shouldRotate ? 28 : 0,
-        overflow: 'truncate',
-        width: 75,
-        ellipsis: '...'
+        interval: Math.max(0, Math.floor(categories.length / 7)),
+        rotate: 0,
+        hideOverlap: true,
+        showMinLabel: true,
+        showMaxLabel: true
       }
     },
     yAxis: yAxisConfig,

@@ -20,6 +20,9 @@ export default function FilterBar({ filters, onFilterChange, onReset, showCrop =
   const activeFilterCount = Object.values(filters).filter((val) => Boolean(val)).length;
   const hasActiveFilters = activeFilterCount > 0;
 
+  const maxDate = filterOptions?.max_date || '2026-09-09';
+  const minDate = filterOptions?.min_date || '2026-01-01';
+
   return (
     <div className="agro-card p-3 sm:p-4 bg-white/90 backdrop-blur-md border border-[#5B7B10]/15">
       {/* Mobile Top Header (Toggle & Clear) */}
@@ -69,6 +72,8 @@ export default function FilterBar({ filters, onFilterChange, onReset, showCrop =
             </div>
             <input
               type="date"
+              min={minDate}
+              max={maxDate}
               value={filters.date_from || ''}
               onChange={(e) => handleChange('date_from', e.target.value)}
               className="bg-transparent text-[#1F2E0A] font-semibold focus:outline-none cursor-pointer text-xs"
@@ -83,6 +88,8 @@ export default function FilterBar({ filters, onFilterChange, onReset, showCrop =
             </div>
             <input
               type="date"
+              min={minDate}
+              max={maxDate}
               value={filters.date_to || ''}
               onChange={(e) => handleChange('date_to', e.target.value)}
               className="bg-transparent text-[#1F2E0A] font-semibold focus:outline-none cursor-pointer text-xs"

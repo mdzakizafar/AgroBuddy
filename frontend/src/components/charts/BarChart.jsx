@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactECharts from 'echarts-for-react';
 
-const DEFAULT_COLORS = ['#5B7B10', '#D97706', '#2563EB', '#DC2626', '#84CC16', '#7C3AED'];
+const DEFAULT_COLORS = ['#5B7B10', '#7E9E1E', '#D97706', '#364E00', '#84CC16', '#A3E635'];
 
 export default function BarChart({
   data,
@@ -15,7 +15,9 @@ export default function BarChart({
   barColor,
   showLabel = false,
   valueFormatter,
-  enableZoom = true
+  enableZoom = true,
+  showLegend = null,
+  dark = false
 }) {
   if (!data || data.length === 0) return null;
 
@@ -66,52 +68,79 @@ export default function BarChart({
     return val;
   };
 
+  const palette = dark 
+    ? ['#84CC16', '#F59E0B', '#38BDF8', '#34D399', '#A3E635', '#E879F9'] 
+    : ['#5B7B10', '#7E9E1E', '#D97706', '#364E00', '#84CC16', '#A3E635'];
+
   // Build series options ensuring legend colors match bar colors 1:1
-  const seriesColors = seriesConfigs.map((s, idx) => s.color || (Array.isArray(barColor) ? barColor[idx % barColor.length] : (typeof barColor === 'string' ? barColor : DEFAULT_COLORS[idx % DEFAULT_COLORS.length])));
+  const seriesColors = seriesConfigs.map((s, idx) => s.color || (Array.isArray(barColor) ? barColor[idx % barColor.length] : (typeof barColor === 'string' ? barColor : palette[idx % palette.length])));
 
   const seriesOptions = seriesConfigs.map((s, idx) => {
     const sColor = seriesColors[idx];
     return {
       name: s.label || s.field,
       type: 'bar',
-      barMaxWidth: 28,
+      barMaxWidth: 24,
+      showBackground: dark,
+      backgroundStyle: {
+        color: dark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(91, 123, 16, 0.04)',
+        borderRadius: horizontal ? [0, 6, 6, 0] : [6, 6, 0, 0]
+      },
       itemStyle: {
         color: sColor,
-        borderRadius: horizontal ? [0, 4, 4, 0] : [4, 4, 0, 0]
+        borderRadius: horizontal ? [0, 6, 6, 0] : [6, 6, 0, 0],
+        shadowColor: dark ? 'rgba(0, 0, 0, 0.4)' : undefined,
+        shadowBlur: dark ? 6 : undefined
       },
       label: {
         show: showLabel || s.showLabel,
         position: horizontal ? 'right' : 'top',
-        color: '#364E00',
-        fontSize: 10,
+        color: s.labelColor || (dark ? '#A3E635' : '#364E00'),
+        fontSize: 11,
         fontWeight: 'bold',
         fontFamily: 'Outfit, sans-serif',
         formatter: (params) => formatMetricValue(params.value, s.field, s.label)
       },
-      data: data.map((d) => d[s.field])
+      data: data.map((d) => {
+        const val = d[s.field];
+        const customColor = d.itemColor || d.color;
+        if (customColor) {
+          return {
+            value: val,
+            itemStyle: {
+              color: customColor,
+              borderRadius: horizontal ? [0, 6, 6, 0] : [6, 6, 0, 0]
+            }
+          };
+        }
+        return val;
+      })
     };
   });
 
   const shouldRotate = !horizontal && categories.length > 4;
+  const isLegendVisible = showLegend !== null ? showLegend : seriesConfigs.length > 1;
 
   const option = {
     backgroundColor: 'transparent',
     color: seriesColors,
     tooltip: {
       trigger: 'axis',
-      backgroundColor: '#FFFFFF',
-      borderColor: '#E2E8F0',
+      confine: true,
+      backgroundColor: dark ? '#172208' : '#FFFFFF',
+      borderColor: dark ? '#2D3F14' : 'rgba(91, 123, 16, 0.2)',
       borderWidth: 1,
       padding: [10, 14],
-      shadowBlur: 12,
-      shadowColor: 'rgba(0, 0, 0, 0.08)',
-      textStyle: { color: '#0F172A', fontSize: 12, fontFamily: 'Outfit, sans-serif' },
+      shadowBlur: 14,
+      shadowColor: dark ? 'rgba(0, 0, 0, 0.5)' : 'rgba(45, 65, 12, 0.08)',
+      textStyle: { color: dark ? '#F8FAFC' : '#1F2E0A', fontSize: 12, fontFamily: 'Outfit, sans-serif' },
       formatter: (params) => {
         if (!params || params.length === 0) return '';
         const rawCategory = params[0].name || '';
+        const rawItem = data[params[0].dataIndex];
         let html = `
-          <div style="font-family: inherit; min-width: 190px;">
-            <div style="font-weight: 700; color: #1E293B; margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid #F1F5F9; font-size: 12px;">
+          <div style="font-family: Outfit, sans-serif; min-width: 190px;">
+            <div style="font-weight: 700; color: ${dark ? '#FFFFFF' : '#1F2E0A'}; margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid ${dark ? '#2D3F14' : 'rgba(91, 123, 16, 0.12)'}; font-size: 12px;">
               ${rawCategory}
             </div>
             <div style="display: flex; flex-direction: column; gap: 4px;">
@@ -119,60 +148,87 @@ export default function BarChart({
         params.forEach((p) => {
           const cfg = seriesConfigs.find((s) => (s.label || s.field) === p.seriesName) || {};
           const valFormatted = formatMetricValue(p.value, cfg.field, p.seriesName);
-          const dotColor = typeof p.color === 'string' ? p.color : (p.color?.colorStops?.[0]?.color || '#5B7B10');
+          const dotColor = rawItem?.itemColor || rawItem?.color || (typeof p.color === 'string' ? p.color : (p.color?.colorStops?.[1]?.color || p.color?.colorStops?.[0]?.color || '#5B7B10'));
           html += `
             <div style="display: flex; justify-content: space-between; gap: 14px; align-items: center; font-size: 11px;">
-              <span style="color: #64748B; display: flex; align-items: center; gap: 5px;">
+              <span style="color: ${dark ? '#CBD5E1' : '#6B7C4B'}; display: flex; align-items: center; gap: 5px;">
                 <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: ${dotColor};"></span>
                 ${p.seriesName}:
               </span>
-              <strong style="color: #0F172A; font-weight: 600;">${valFormatted}</strong>
+              <strong style="color: ${dotColor}; font-weight: 700;">${valFormatted}</strong>
             </div>
           `;
         });
+        if (rawItem?.mean_daily_arrival) {
+          html += `
+            <div style="display: flex; justify-content: space-between; gap: 14px; align-items: center; font-size: 11px; margin-top: 4px; border-top: 1px dashed ${dark ? 'rgba(132,204,22,0.2)' : 'rgba(91,123,16,0.15)'}; padding-top: 4px;">
+              <span style="color: ${dark ? '#A3B882' : '#6B7C4B'};">Mean Daily:</span>
+              <strong style="color: ${dark ? '#FFFFFF' : '#1F2E0A'}; font-weight: 600;">${Math.round(rawItem.mean_daily_arrival).toLocaleString()} Qtl/d</strong>
+            </div>
+          `;
+        }
+        if (rawItem?.std_daily_arrival) {
+          html += `
+            <div style="display: flex; justify-content: space-between; gap: 14px; align-items: center; font-size: 11px;">
+              <span style="color: ${dark ? '#A3B882' : '#6B7C4B'};">Std Deviation:</span>
+              <strong style="color: ${dark ? '#CBD5E1' : '#526633'}; font-weight: 600;">${Math.round(rawItem.std_daily_arrival).toLocaleString()} Qtl/d</strong>
+            </div>
+          `;
+        }
+        if (rawItem?.share_percent != null) {
+          html += `
+            <div style="display: flex; justify-content: space-between; gap: 14px; align-items: center; font-size: 11px; margin-top: 4px; border-top: 1px dashed ${dark ? 'rgba(132,204,22,0.2)' : 'rgba(91,123,16,0.15)'}; padding-top: 4px;">
+              <span style="color: ${dark ? '#A3B882' : '#6B7C4B'};">Volume Share:</span>
+              <strong style="color: ${dark ? '#84CC16' : '#364E00'}; font-weight: 600;">${Number(rawItem.share_percent).toFixed(1)}%</strong>
+            </div>
+          `;
+        }
         html += `</div></div>`;
         return html;
       }
     },
     legend: {
+      show: isLegendVisible,
       top: 0,
       right: '2%',
       icon: 'roundRect',
       itemWidth: 10,
       itemHeight: 10,
-      textStyle: { color: '#475569', fontSize: 11, fontWeight: 500, fontFamily: 'Outfit, sans-serif' }
+      textStyle: { color: dark ? '#CBD5E1' : '#526633', fontSize: 11, fontWeight: 500, fontFamily: 'Outfit, sans-serif' }
     },
     grid: {
-      top: seriesConfigs.length > 1 ? 30 : 20,
+      top: isLegendVisible ? 32 : 16,
       left: 10,
-      right: horizontal && showLabel ? 65 : 15,
-      bottom: !horizontal ? (shouldRotate ? 45 : 20) : 20,
+      right: horizontal && (showLabel || seriesConfigs.some((s) => s.showLabel)) ? 65 : 15,
+      bottom: !horizontal ? (shouldRotate ? 45 : 20) : 18,
       containLabel: true
     },
     [horizontal ? 'yAxis' : 'xAxis']: {
       type: 'category',
       data: categories,
-      axisLine: { lineStyle: { color: '#E2E8F0' } },
+      inverse: horizontal ? true : false,
+      axisLine: { lineStyle: { color: dark ? '#2D3F14' : 'rgba(91, 123, 16, 0.18)' } },
       axisTick: { show: false },
       axisLabel: {
-        color: '#475569',
-        fontSize: 10,
-        fontWeight: 500,
+        color: dark ? '#F1F5F9' : '#1F2E0A',
+        fontSize: 11,
+        fontWeight: 600,
         interval: 0,
         rotate: shouldRotate ? 28 : 0,
         overflow: 'truncate',
-        width: shouldRotate ? 80 : 100,
+        width: horizontal ? 105 : (shouldRotate ? 80 : 110),
         ellipsis: '...'
       }
     },
     [horizontal ? 'xAxis' : 'yAxis']: {
       type: 'value',
-      splitLine: { lineStyle: { color: '#F1F5F9', type: 'dashed' } },
+      splitLine: { lineStyle: { color: dark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(91, 123, 16, 0.08)', type: 'dashed' } },
       axisLine: { show: false },
       axisTick: { show: false },
       axisLabel: {
-        color: '#64748B',
+        color: dark ? '#8FA866' : '#6B7C4B',
         fontSize: 10,
+        fontFamily: 'Outfit, sans-serif',
         formatter: (val) => formatMetricValue(val)
       }
     },

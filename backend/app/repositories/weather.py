@@ -176,7 +176,9 @@ class WeatherRepository:
                 SUM(CASE WHEN is_heavy_rain_flag THEN 1 ELSE 0 END)::INT AS heavy_rain_event_count,
                 MAX(temperature_c) AS highest_temperature_c,
                 MAX(rainfall_mm) AS highest_rainfall_mm,
-                SUM(CASE WHEN is_negative_rainfall_anomaly THEN 1 ELSE 0 END)::INT AS negative_rainfall_anomalies_count
+                SUM(CASE WHEN is_negative_rainfall_anomaly THEN 1 ELSE 0 END)::INT AS negative_rainfall_anomalies_count,
+                AVG(rainfall_mm) AS avg_daily_sensor_rainfall_mm,
+                COUNT(DISTINCT CASE WHEN rainfall_mm > 0 THEN timestamp::DATE END)::INT AS rainfall_days
             FROM fact_weather
             WHERE {where_str}
         """
@@ -184,6 +186,7 @@ class WeatherRepository:
         extremes_summary = {
             "avg_temperature_c": float(row[0]) if row[0] is not None else None,
             "total_rainfall_mm": float(row[1]) if row[1] is not None else 0.0,
+            "cumulative_sensor_rainfall_mm": float(row[1]) if row[1] is not None else 0.0,
             "heatwave_days": int(row[2]) if row[2] is not None else 0,
             "heavy_rain_days": int(row[3]) if row[3] is not None else 0,
             "active_sensors": int(row[4]) if row[4] is not None else 0,
@@ -192,6 +195,8 @@ class WeatherRepository:
             "highest_temperature_c": float(row[7]) if row[7] is not None else None,
             "highest_rainfall_mm": float(row[8]) if row[8] is not None else None,
             "negative_rainfall_anomalies_count": int(row[9]) if row[9] is not None else 0,
+            "avg_daily_sensor_rainfall_mm": float(row[10]) if row[10] is not None else 0.0,
+            "rainfall_days": int(row[11]) if row[11] is not None else 0,
         }
 
         top_temp_query = f"""

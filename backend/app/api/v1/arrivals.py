@@ -108,6 +108,7 @@ def get_arrivals_mix(
 def get_arrivals_volatility(
     date_from: Optional[str] = None,
     date_to: Optional[str] = None,
+    crop: Optional[str] = None,
     mandi_id: Optional[str] = None,
     district: Optional[str] = None,
     state: Optional[str] = None,
@@ -117,6 +118,7 @@ def get_arrivals_volatility(
     filters = FilterParams(
         date_from=date_from,
         date_to=date_to,
+        crop=crop,
         mandi_id=mandi_id,
         district=district,
         state=state

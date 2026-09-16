@@ -70,7 +70,8 @@ def init_db(data_dir: Path = settings.DATA_DIR, db_path: Path = settings.DUCKDB_
                     CAST(unit AS VARCHAR) AS unit,
                     CAST(farmer_count AS INTEGER) AS farmer_count,
                     CAST(is_negative_anomaly AS BOOLEAN) AS is_negative_anomaly
-                FROM read_csv_auto('{arrivals_csv.as_posix()}');
+                FROM read_csv_auto('{arrivals_csv.as_posix()}')
+                WHERE CAST(date AS DATE) <= '2026-09-09';
             """)
         else:
             logger.warning(f"File not found: {arrivals_csv}")
@@ -93,7 +94,8 @@ def init_db(data_dir: Path = settings.DATA_DIR, db_path: Path = settings.DUCKDB_
                     CAST(msp AS DOUBLE) AS msp,
                     COALESCE(CAST(msp_gap AS DOUBLE), CAST(msp AS DOUBLE) - CAST(modal_price AS DOUBLE)) AS msp_gap,
                     CASE WHEN CAST(modal_price AS DOUBLE) < CAST(msp AS DOUBLE) THEN 1 ELSE 0 END AS below_msp_flag
-                FROM read_csv_auto('{prices_csv.as_posix()}');
+                FROM read_csv_auto('{prices_csv.as_posix()}')
+                WHERE CAST(date AS DATE) <= '2026-09-09';
             """)
         else:
             logger.warning(f"File not found: {prices_csv}")
@@ -117,7 +119,8 @@ def init_db(data_dir: Path = settings.DATA_DIR, db_path: Path = settings.DUCKDB_
                     CAST(is_negative_anomaly AS BOOLEAN) AS is_negative_anomaly,
                     (CAST(transit_hours AS DOUBLE) - (CAST(distance_km AS DOUBLE) / 40.0)) AS delay_hours,
                     CASE WHEN (CAST(transit_hours AS DOUBLE) - (CAST(distance_km AS DOUBLE) / 40.0)) > 2.0 THEN 1 ELSE 0 END AS is_delayed_flag
-                FROM read_csv_auto('{transport_csv.as_posix()}');
+                FROM read_csv_auto('{transport_csv.as_posix()}')
+                WHERE CAST(departure_time AS DATE) <= '2026-09-09';
             """)
         else:
             logger.warning(f"File not found: {transport_csv}")
@@ -138,7 +141,8 @@ def init_db(data_dir: Path = settings.DATA_DIR, db_path: Path = settings.DUCKDB_
                     CAST(is_negative_rainfall_anomaly AS BOOLEAN) AS is_negative_rainfall_anomaly,
                     CAST(is_heatwave_flag AS BOOLEAN) AS is_heatwave_flag,
                     CAST(is_heavy_rain_flag AS BOOLEAN) AS is_heavy_rain_flag
-                FROM read_csv_auto('{weather_csv.as_posix()}');
+                FROM read_csv_auto('{weather_csv.as_posix()}')
+                WHERE CAST(timestamp AS DATE) <= '2026-09-09';
             """)
         else:
             logger.warning(f"File not found: {weather_csv}")

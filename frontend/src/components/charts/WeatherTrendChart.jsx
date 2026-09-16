@@ -7,103 +7,90 @@ export default function WeatherTrendChart({
 }) {
   if (!data || data.length === 0) return null;
 
-  // Downsample to at most 24 clean, well-spaced time points for visual elegance
-  const processedData = React.useMemo(() => {
-    if (data.length <= 25) return data;
-    const step = Math.max(1, Math.floor(data.length / 24));
-    const result = [];
-    for (let i = 0; i < data.length; i += step) {
-      const chunk = data.slice(i, i + step);
-      const avgT = chunk.reduce((sum, c) => sum + (c.avg_temperature_c || 0), 0) / chunk.length;
-      const maxT = chunk.reduce((sum, c) => Math.max(sum, c.max_temperature_c || c.avg_temperature_c || 0), 0);
-      const sumR = chunk.reduce((sum, c) => sum + (c.total_rainfall_mm || c.rainfall_mm || 0), 0) / chunk.length;
-      const dateLabel = chunk[0]?.date || `Period ${i + 1}`;
-
-      result.push({
-        date: dateLabel,
-        avg_temperature_c: Math.round(avgT * 10) / 10,
-        max_temperature_c: Math.round(maxT * 10) / 10,
-        total_rainfall_mm: Math.round(sumR * 10) / 10
-      });
-    }
-    return result;
-  }, [data]);
-
-  const dates = processedData.map((d) => {
+  // Format dates cleanly for time axis (e.g., "15 Jan", "01 Feb")
+  const dates = data.map((d) => {
     if (!d.date) return '';
     try {
       const parts = d.date.split('-');
       if (parts.length >= 3) {
         const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
         const mIdx = parseInt(parts[1], 10) - 1;
-        return `${parts[2]} ${monthNames[mIdx] || parts[1]}`;
+        return `${parseInt(parts[2], 10)} ${monthNames[mIdx] || parts[1]}`;
       }
-    } catch (e) {
-      // fallback
-    }
+    } catch (e) {}
     return d.date;
   });
 
-  const avgTemps = processedData.map((d) => Number(d.avg_temperature_c || 0));
-  const maxTemps = processedData.map((d) => Number(d.max_temperature_c || d.avg_temperature_c || 0));
-  const rainfalls = processedData.map((d) => Number(d.total_rainfall_mm || 0));
+  const avgTemps = data.map((d) => Number(d.avg_temperature_c || d.temperature_c || 0));
+  const maxTemps = data.map((d) => Number(d.max_temperature_c || d.avg_temperature_c || 0));
+  const rainfalls = data.map((d) => Number(d.rainfall_mm || d.avg_rainfall_mm || d.total_rainfall_mm || 0));
 
-  // Compute clean Y-axis bounds
+  // Determine dynamic bounds
   const allTemps = [...avgTemps, ...maxTemps].filter((t) => t > 0);
   const minTemp = allTemps.length > 0 ? Math.min(...allTemps) : 15;
   const maxTemp = allTemps.length > 0 ? Math.max(...allTemps) : 45;
   const yMinTemp = Math.max(0, Math.floor((minTemp - 3) / 5) * 5);
-  const yMaxTemp = Math.ceil((maxTemp + 3) / 5) * 5;
+  const yMaxTemp = Math.max(45, Math.ceil((maxTemp + 2) / 5) * 5);
 
-  const maxRain = rainfalls.length > 0 ? Math.max(...rainfalls) : 60;
-  const yMaxRain = Math.max(40, Math.ceil((maxRain * 1.3) / 10) * 10);
+  const maxRain = rainfalls.length > 0 ? Math.max(...rainfalls) : 40;
+  const yMaxRain = Math.max(40, Math.ceil((maxRain * 1.25) / 10) * 10);
 
   const option = {
     backgroundColor: 'transparent',
     tooltip: {
       trigger: 'axis',
+      confine: true,
       backgroundColor: '#FFFFFF',
-      borderColor: '#E2E8F0',
+      borderColor: 'rgba(91, 123, 16, 0.2)',
       borderWidth: 1,
       padding: [10, 14],
-      shadowBlur: 10,
-      shadowColor: 'rgba(0, 0, 0, 0.05)',
-      textStyle: { color: '#0F172A', fontSize: 12, fontFamily: 'Outfit, sans-serif' },
+      shadowBlur: 14,
+      shadowColor: 'rgba(45, 65, 12, 0.08)',
+      textStyle: { color: '#1F2E0A', fontSize: 12, fontFamily: 'Outfit, sans-serif' },
       formatter: (params) => {
         if (!params || params.length === 0) return '';
         const idx = params[0].dataIndex;
-        const dateStr = dates[idx] || processedData[idx]?.date;
+        const dateStr = dates[idx] || data[idx]?.date;
         const avgT = avgTemps[idx];
         const maxT = maxTemps[idx];
         const rain = rainfalls[idx];
 
-        const isHeatwave = maxT >= 40.0;
-        const isHeavyRain = rain >= 40.0;
+        const isHeatwave = maxT >= 38.0;
+        const isHeavyRain = rain >= 28.0;
 
         return `
-          <div style="min-width: 200px; font-family: inherit;">
-            <div style="font-weight: 700; font-size: 12px; color: #1E293B; border-bottom: 1px solid #E2E8F0; padding-bottom: 6px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+          <div style="min-width: 220px; font-family: Outfit, sans-serif;">
+            <div style="font-weight: 700; font-size: 13px; color: #1F2E0A; border-bottom: 1px solid rgba(91, 123, 16, 0.15); padding-bottom: 6px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; gap: 8px;">
               <span>${dateStr}</span>
               ${
                 isHeatwave
-                  ? `<span style="font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 4px; background: #FEE2E2; color: #991B1B;">Heatwave</span>`
+                  ? `<span style="font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 6px; background: #FEF2F2; color: #BE123C; border: 1px solid #FECDD3;">🔥 Extreme Heat</span>`
                   : isHeavyRain
-                  ? `<span style="font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 4px; background: #DBEAFE; color: #1E40AF;">Heavy Rain</span>`
-                  : `<span style="font-size: 10px; font-weight: 600; color: #64748B;">Normal</span>`
+                  ? `<span style="font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 6px; background: #E0F2FE; color: #0369A1; border: 1px solid #BAE6FD;">🌧️ Rain Surge</span>`
+                  : `<span style="font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 6px; background: #F4F6EC; color: #364E00; border: 1px solid rgba(91, 123, 16, 0.2);">⛅ Temperate</span>`
               }
             </div>
             <div style="display: flex; flex-direction: column; gap: 5px; font-size: 11px;">
-              <div style="display: flex; justify-content: space-between; gap: 12px;">
-                <span style="color: #EF4444; font-weight: 600;">● Maximum Temp:</span>
-                <strong style="color: #0F172A;">${maxT.toFixed(1)}°C</strong>
+              <div style="display: flex; justify-content: space-between; gap: 14px; align-items: center;">
+                <span style="color: #6B7C4B; display: flex; align-items: center; gap: 5px;">
+                  <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: #D97706;"></span>
+                  Ambient Mean Temp:
+                </span>
+                <strong style="color: #1F2E0A; font-weight: 700;">${avgT.toFixed(1)}°C</strong>
               </div>
-              <div style="display: flex; justify-content: space-between; gap: 12px;">
-                <span style="color: #F59E0B; font-weight: 600;">● Average Temp:</span>
-                <strong style="color: #0F172A;">${avgT.toFixed(1)}°C</strong>
+              <div style="display: flex; justify-content: space-between; gap: 14px; align-items: center;">
+                <span style="color: #6B7C4B; display: flex; align-items: center; gap: 5px;">
+                  <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: #E11D48;"></span>
+                  Peak Sensor Temp:
+                </span>
+                <strong style="color: #E11D48; font-weight: 700;">${maxT.toFixed(1)}°C</strong>
               </div>
-              <div style="display: flex; justify-content: space-between; gap: 12px; padding-top: 4px; border-top: 1px dashed #E2E8F0; margin-top: 2px;">
-                <span style="color: #3B82F6; font-weight: 600;">▮ Daily Rainfall:</span>
-                <strong style="color: #0F172A;">${rain.toFixed(1)} mm</strong>
+              <div style="display: flex; justify-content: space-between; gap: 14px; align-items: center; padding-top: 5px; border-top: 1px dashed rgba(91, 123, 16, 0.15); margin-top: 3px;">
+                <span style="color: #0284C7; font-weight: 600; display: flex; align-items: center; gap: 5px;">
+                  <span style="display: inline-block; width: 8px; height: 8px; border-radius: 2px; background-color: #0284C7;"></span>
+                  Daily Precipitation:
+                </span>
+                <strong style="color: #0284C7; font-weight: 700;">${rain.toFixed(1)} mm</strong>
               </div>
             </div>
           </div>
@@ -112,73 +99,83 @@ export default function WeatherTrendChart({
     },
     legend: {
       top: 0,
-      right: '1%',
-      icon: 'circle',
-      itemWidth: 8,
+      right: '2%',
+      icon: 'roundRect',
+      itemWidth: 12,
       itemHeight: 8,
-      textStyle: { color: '#64748B', fontSize: 11, fontWeight: 500 },
-      data: ['Maximum Temp (°C)', 'Average Temp (°C)', 'Daily Rainfall (mm)']
+      textStyle: { color: '#526633', fontSize: 11, fontWeight: 600, fontFamily: 'Outfit, sans-serif' },
+      data: ['Ambient Mean Temp (°C)', 'Peak Sensor Temp (°C)', 'Daily Rainfall (mm)']
     },
     grid: {
       top: 36,
-      left: 15,
-      right: 45,
-      bottom: 25,
+      left: 12,
+      right: 28,
+      bottom: 18,
       containLabel: true
     },
     xAxis: {
       type: 'category',
       data: dates,
       boundaryGap: true,
-      axisLine: { lineStyle: { color: '#E2E8F0' } },
+      axisLine: { lineStyle: { color: 'rgba(91, 123, 16, 0.18)' } },
       axisTick: { show: false },
       axisLabel: {
-        color: '#64748B',
+        color: '#6B7C4B',
         fontSize: 10,
-        margin: 10
+        fontFamily: 'Outfit, sans-serif',
+        interval: 3,
+        rotate: 0
       }
     },
     yAxis: [
       // Left Y-Axis: Temperature (°C)
       {
         type: 'value',
-        name: 'Temp (°C)',
-        nameTextStyle: { color: '#64748B', fontSize: 10, fontWeight: '600', align: 'left' },
+        name: 'Ambient (°C)',
+        nameTextStyle: { color: '#526633', fontSize: 11, fontWeight: '700', fontFamily: 'Outfit, sans-serif', align: 'left' },
         min: yMinTemp,
         max: yMaxTemp,
-        splitLine: { lineStyle: { color: '#F1F5F9', type: 'dashed' } },
+        interval: 5,
+        splitLine: { lineStyle: { color: 'rgba(91, 123, 16, 0.08)', type: 'dashed' } },
         axisLine: { show: false },
         axisTick: { show: false },
         axisLabel: {
-          color: '#64748B',
+          color: '#6B7C4B',
           fontSize: 10,
-          formatter: (v) => `${v}°C`
+          fontFamily: 'Outfit, sans-serif',
+          formatter: '{value}°C'
         }
       },
       // Right Y-Axis: Rainfall (mm)
       {
         type: 'value',
-        name: 'Rain (mm)',
-        nameTextStyle: { color: '#3B82F6', fontSize: 10, fontWeight: '600', align: 'right' },
+        name: 'Precipitation (mm)',
+        nameTextStyle: { color: '#0284C7', fontSize: 11, fontWeight: '700', fontFamily: 'Outfit, sans-serif', align: 'right' },
         min: 0,
         max: yMaxRain,
+        interval: 10,
         splitLine: { show: false },
         axisLine: { show: false },
         axisTick: { show: false },
         axisLabel: {
-          color: '#3B82F6',
+          color: '#0284C7',
           fontSize: 10,
-          formatter: (v) => `${v}mm`
+          fontFamily: 'Outfit, sans-serif',
+          formatter: '{value} mm'
         }
       }
     ],
     series: [
-      // 1. Rainfall Volumetric Bars (Right Axis)
+      // 1. Rainfall Volumetric Columns (Right Axis) - Soft Cyan Gradient
       {
         name: 'Daily Rainfall (mm)',
         type: 'bar',
         yAxisIndex: 1,
-        barWidth: '22%',
+        barWidth: 11,
+        emphasis: {
+          focus: 'series',
+          itemStyle: { color: 'rgba(14, 165, 233, 0.85)' }
+        },
         itemStyle: {
           borderRadius: [4, 4, 0, 0],
           color: {
@@ -188,41 +185,55 @@ export default function WeatherTrendChart({
             x2: 0,
             y2: 1,
             colorStops: [
-              { offset: 0, color: 'rgba(59, 130, 246, 0.65)' },
-              { offset: 1, color: 'rgba(219, 234, 254, 0.15)' }
+              { offset: 0, color: 'rgba(14, 165, 233, 0.55)' },
+              { offset: 1, color: 'rgba(14, 165, 233, 0.05)' }
             ]
           }
         },
         data: rainfalls
       },
-      // 2. Maximum Temperature Line (Left Axis)
+      // 2. Peak Sensor Temperature (Left Axis) - Sophisticated Dashed Rose Accent
       {
-        name: 'Maximum Temp (°C)',
+        name: 'Peak Sensor Temp (°C)',
         type: 'line',
         yAxisIndex: 0,
-        smooth: 0.45,
-        symbol: 'none',
-        lineStyle: {
-          width: 2.2,
-          color: '#EF4444'
+        smooth: 0.4,
+        symbol: 'circle',
+        symbolSize: 4,
+        showSymbol: false,
+        emphasis: {
+          focus: 'series',
+          itemStyle: { borderWidth: 2, borderColor: '#FFFFFF', shadowBlur: 6 }
         },
-        itemStyle: { color: '#EF4444' },
+        lineStyle: {
+          width: 1.8,
+          type: 'dashed',
+          color: '#E11D48'
+        },
+        itemStyle: { color: '#E11D48' },
         data: maxTemps
       },
-      // 3. Average Temperature Line & Soft Gradient Fill (Left Axis)
+      // 3. Ambient Mean Temperature (Left Axis) - Warm Solar Amber Spine with Ambient Fill
       {
-        name: 'Average Temp (°C)',
+        name: 'Ambient Mean Temp (°C)',
         type: 'line',
         yAxisIndex: 0,
         smooth: 0.45,
-        symbol: 'none',
-        lineStyle: {
-          width: 3.0,
-          color: '#F59E0B'
+        symbol: 'circle',
+        symbolSize: 5,
+        showSymbol: false,
+        emphasis: {
+          focus: 'series',
+          itemStyle: { borderWidth: 2, borderColor: '#FFFFFF', shadowBlur: 8, shadowColor: 'rgba(217, 119, 6, 0.4)' }
         },
-        itemStyle: { color: '#F59E0B' },
+        lineStyle: {
+          width: 2.8,
+          color: '#D97706',
+          shadowColor: 'rgba(217, 119, 6, 0.25)',
+          shadowBlur: 8
+        },
+        itemStyle: { color: '#D97706' },
         areaStyle: {
-          opacity: 1,
           color: {
             type: 'linear',
             x: 0,
@@ -230,11 +241,30 @@ export default function WeatherTrendChart({
             x2: 0,
             y2: 1,
             colorStops: [
-              { offset: 0, color: 'rgba(245, 158, 11, 0.18)' },
-              { offset: 0.8, color: 'rgba(245, 158, 11, 0.02)' },
-              { offset: 1, color: 'rgba(245, 158, 11, 0.0)' }
+              { offset: 0, color: 'rgba(217, 119, 6, 0.16)' },
+              { offset: 0.8, color: 'rgba(217, 119, 6, 0.02)' },
+              { offset: 1, color: 'transparent' }
             ]
           }
+        },
+        markLine: {
+          silent: true,
+          symbol: 'none',
+          data: [
+            {
+              yAxis: 35,
+              name: 'Heatwave Advisory',
+              lineStyle: { color: 'rgba(225, 29, 72, 0.55)', type: 'dashed', width: 1.5 },
+              label: {
+                formatter: 'Heatwave Advisory (≥35°C)',
+                position: 'insideEndTop',
+                color: '#BE123C',
+                fontSize: 10,
+                fontWeight: 700,
+                fontFamily: 'Outfit, sans-serif'
+              }
+            }
+          ]
         },
         data: avgTemps
       }

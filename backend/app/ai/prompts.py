@@ -25,7 +25,7 @@ PAGE_PROMPTS = {
     "logistics_command": "Where are transportation bottlenecks occurring and how severe are delays?",
     "weather_operations": "What environmental conditions could disrupt agricultural operations?",
     "mandi_risk": "Why are these Mandis categorized as high/medium risk?",
-    "forecast_planning": "What is likely to happen next based on current trends?"
+    "forecast_planning": "What are the projected crop arrival volumes and commodity momentum trajectories over the next 7-day forecasting horizon (Sep 10 - Sep 16, 2026), and what storage or logistics preparations should be made?"
 }
 
 AGENT_INTENT_PROMPT = """You are the natural language intent parser and slot-filling engine for AgroBuddy AI.

@@ -24,3 +24,12 @@ export const useArrivalsByMandi = (filters = {}) => {
     staleTime: 60000,
   });
 };
+
+export const useArrivalVolatility = (filters = {}) => {
+  return useQuery({
+    queryKey: ['arrivals-volatility', filters],
+    queryFn: () => fetchArrivalVolatility(filters),
+    staleTime: 60000,
+  });
+};
+

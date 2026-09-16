@@ -61,14 +61,15 @@ export default function ForecastPlanning() {
   const heroChartOption = {
     tooltip: {
       trigger: 'axis',
+      confine: true,
       backgroundColor: '#064e3b',
       borderColor: '#047857',
-      textStyle: { color: '#ffffff', fontSize: 12 },
+      textStyle: { color: '#ffffff', fontSize: 12, fontFamily: 'Outfit, sans-serif' },
       formatter: (params) => {
-        let res = `<div style="font-weight:bold; color:#6ee7b7; margin-bottom:4px;">Date: ${params[0].name}</div>`;
+        let res = `<div style="font-weight:bold; color:#6ee7b7; margin-bottom:4px; font-family: Outfit, sans-serif;">Date: ${params[0].name}</div>`;
         params.forEach(p => {
           if (p.value !== null && p.value !== undefined && p.seriesName !== 'CI Band') {
-            res += `<div style="font-size:11px;">${p.marker} ${p.seriesName}: <b>${Math.round(p.value).toLocaleString()} Qtl</b></div>`;
+            res += `<div style="font-size:11px; font-family: Outfit, sans-serif;">${p.marker} ${p.seriesName}: <b>${Math.round(p.value).toLocaleString()} Qtl</b></div>`;
           }
         });
         return res;
@@ -78,7 +79,7 @@ export default function ForecastPlanning() {
       data: ['Historical Actual', 'ML Model Forecast', '95% Confidence Interval'],
       top: '2%',
       right: '4%',
-      textStyle: { color: '#334155', fontSize: 11 }
+      textStyle: { color: '#334155', fontSize: 11, fontFamily: 'Outfit, sans-serif', fontWeight: 500 }
     },
     grid: { left: '4%', right: '4%', top: '15%', bottom: '12%', containLabel: true },
     xAxis: {
@@ -87,6 +88,7 @@ export default function ForecastPlanning() {
       axisLabel: {
         fontSize: 10,
         color: '#64748b',
+        interval: Math.floor(combinedDates.length / 9),
         formatter: (val) => val.length > 5 ? val.slice(5) : val
       },
       axisLine: { lineStyle: { color: '#cbd5e1' } }
@@ -94,9 +96,9 @@ export default function ForecastPlanning() {
     yAxis: {
       type: 'value',
       name: 'Arrival Volume (Qtl)',
-      nameTextStyle: { color: '#64748b', fontSize: 11 },
-      axisLabel: { fontSize: 10, color: '#64748b' },
-      splitLine: { lineStyle: { type: 'dashed', color: '#f1f5f9' } }
+      nameTextStyle: { color: '#64748b', fontSize: 11, fontFamily: 'Outfit, sans-serif' },
+      axisLabel: { fontSize: 10, color: '#64748b', formatter: (v) => `${Math.round(v / 1000)}k` },
+      splitLine: { lineStyle: { type: 'dashed', color: 'rgba(91, 123, 16, 0.08)' } }
     },
     series: [
       {
@@ -106,16 +108,21 @@ export default function ForecastPlanning() {
         smooth: true,
         symbol: 'circle',
         symbolSize: 4,
+        emphasis: {
+          focus: 'series',
+          itemStyle: { borderWidth: 2, borderColor: '#FFFFFF', shadowBlur: 6 }
+        },
         itemStyle: { color: '#047857' },
         lineStyle: { width: 3, color: '#047857' },
         markLine: historical.length > 0 ? {
           symbol: ['none', 'none'],
           label: {
-            formatter: 'TODAY (Forecast Starts)',
+            formatter: 'DATA CUTOFF (09 Sep) • FORECAST',
             position: 'end',
             color: '#dc2626',
             fontSize: 10,
-            fontWeight: 'bold'
+            fontWeight: 'bold',
+            fontFamily: 'Outfit, sans-serif'
           },
           lineStyle: { color: '#dc2626', type: 'dashed', width: 2 },
           data: [{ xAxis: historical.length - 1 }]
@@ -128,6 +135,10 @@ export default function ForecastPlanning() {
         smooth: true,
         symbol: 'diamond',
         symbolSize: 6,
+        emphasis: {
+          focus: 'series',
+          itemStyle: { borderWidth: 2, borderColor: '#FFFFFF', shadowBlur: 6 }
+        },
         itemStyle: { color: '#2563eb' },
         lineStyle: { width: 3, type: 'dashed', color: '#2563eb' }
       },
@@ -151,13 +162,36 @@ export default function ForecastPlanning() {
     ]
   };
 
-  const cropBreakdown = [
-    { crop: 'Wheat', trend: '+14.2%', expected: '58,400 Qtl', signal: 'Procurement Surge' },
-    { crop: 'Rice', trend: '+8.7%', expected: '42,100 Qtl', signal: 'Normal Arrival' },
-    { crop: 'Mustard', trend: '-5.1%', expected: '31,200 Qtl', signal: 'Supply Tightening' },
-    { crop: 'Sugarcane', trend: '+2.4%', expected: '84,500 Qtl', signal: 'Stable Flow' },
-    { crop: 'Cotton', trend: '-11.3%', expected: '18,900 Qtl', signal: 'Shortfall Alert' }
+  const commoditySignals = forecastRes?.commodity_signals || [
+    { crop: 'Wheat', trend: '-3.8%', direction: 'stable', arrow: '→', signal: 'Stable flow', recent_volume_qtl: '24,198 Qtl' },
+    { crop: 'Maize', trend: '-4.9%', direction: 'stable', arrow: '→', signal: 'Stable flow', recent_volume_qtl: '23,892 Qtl' },
+    { crop: 'Rice', trend: '-13.7%', direction: 'declining', arrow: '↓', signal: 'Supply tightening', recent_volume_qtl: '23,612 Qtl' },
+    { crop: 'Cotton', trend: '-14.5%', direction: 'declining', arrow: '↓', signal: 'Supply tightening', recent_volume_qtl: '21,682 Qtl' },
+    { crop: 'Mustard', trend: '-21.7%', direction: 'declining', arrow: '↓', signal: 'Supply tightening', recent_volume_qtl: '21,114 Qtl' },
+    { crop: 'Sugarcane', trend: '-24.8%', direction: 'declining', arrow: '↓', signal: 'Supply tightening', recent_volume_qtl: '24,242 Qtl' }
   ];
+
+  const defaultDirectives = [
+    {
+      category: 'Storage Capacity Watch',
+      type: 'capacity',
+      text: 'Review auxiliary storage readiness at high-volume hubs if projected daily arrivals exceed the 7-day moving average.',
+      severity: 'info'
+    },
+    {
+      category: 'Logistics Corridor Monitoring',
+      type: 'logistics',
+      text: 'Monitor transport dispatch SLAs along northern mandi routes showing transit delay variance above the 2.0-hour SLA baseline.',
+      severity: 'warning'
+    },
+    {
+      category: 'Price Stabilization Readiness',
+      type: 'price',
+      text: 'Monitor designated APMC procurement centers where modal prices persistently track below statutory MSP thresholds.',
+      severity: 'primary'
+    }
+  ];
+  const planningDirectives = forecastRes?.planning_recommendations || defaultDirectives;
 
   return (
     <div className="space-y-6">
@@ -248,17 +282,26 @@ export default function ForecastPlanning() {
           </h3>
 
           <div className="space-y-2.5">
-            {cropBreakdown.map((item, idx) => (
-              <div key={idx} className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between text-xs">
-                <div>
+            {commoditySignals.map((item, idx) => (
+              <div key={idx} className="p-3 bg-slate-50 hover:bg-[#FAFDF5] rounded-xl border border-slate-100 hover:border-[#5B7B10]/30 transition-all flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2">
                   <span className="font-bold text-slate-900">{item.crop}</span>
-                  <span className={`ml-2 font-mono text-[11px] ${item.trend.startsWith('+') ? 'text-emerald-600 font-semibold' : 'text-red-600 font-semibold'}`}>
-                    {item.trend}
+                  <span className={`font-mono text-[11px] font-semibold flex items-center gap-0.5 ${
+                    item.direction === 'rising' ? 'text-emerald-600' : item.direction === 'declining' ? 'text-amber-600' : 'text-slate-600'
+                  }`}>
+                    <span>{item.arrow || '→'}</span>
+                    <span>{item.trend}</span>
                   </span>
                 </div>
                 <div className="flex items-center space-x-3">
-                  <span className="font-mono text-slate-700">{item.expected}</span>
-                  <span className="bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-600 font-medium text-[10px]">
+                  <span className="font-mono text-slate-700">{item.recent_volume_qtl || item.expected}</span>
+                  <span className={`px-2 py-0.5 rounded font-medium text-[10px] border ${
+                    item.direction === 'rising'
+                      ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                      : item.direction === 'declining'
+                      ? 'bg-amber-50 text-amber-800 border-amber-200'
+                      : 'bg-slate-50 text-slate-700 border-slate-200'
+                  }`}>
                     {item.signal}
                   </span>
                 </div>
@@ -267,7 +310,7 @@ export default function ForecastPlanning() {
           </div>
         </div>
 
-        {/* Planning Recommendations */}
+        {/* Planning Directives */}
         <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs space-y-4">
           <h3 className="text-sm font-bold text-slate-900 flex items-center space-x-2 font-['Outfit']">
             <Sparkles className="w-4 h-4 text-amber-600" />
@@ -275,26 +318,27 @@ export default function ForecastPlanning() {
           </h3>
 
           <div className="space-y-3">
-            <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl">
-              <h4 className="text-xs font-bold text-emerald-950 uppercase tracking-wider">Warehouse Capacity Signal</h4>
-              <p className="text-xs text-emerald-800 mt-1 leading-relaxed">
-                Prepare 15,000 Qtl auxiliary storage capacity near Khanna and Azadpur mandi hubs to absorb peak Wheat arrival surges projected for Day 3.
-              </p>
-            </div>
+            {planningDirectives.map((dir, idx) => {
+              const bgClass = dir.severity === 'warning'
+                ? 'bg-amber-50 border-amber-200 text-amber-950'
+                : dir.severity === 'primary'
+                ? 'bg-blue-50 border-blue-200 text-blue-950'
+                : 'bg-emerald-50 border-emerald-200 text-emerald-950';
+              const textClass = dir.severity === 'warning'
+                ? 'text-amber-800'
+                : dir.severity === 'primary'
+                ? 'text-blue-800'
+                : 'text-emerald-800';
 
-            <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl">
-              <h4 className="text-xs font-bold text-amber-950 uppercase tracking-wider">Logistics Fleet Re-allocation</h4>
-              <p className="text-xs text-amber-800 mt-1 leading-relaxed">
-                Re-route 25 heavy transport vehicles from low-pressure southern corridors toward northern Punjab routes to mitigate expected 40+ hour transit bottlenecks.
-              </p>
-            </div>
-
-            <div className="p-3.5 bg-blue-50 border border-blue-200 rounded-xl">
-              <h4 className="text-xs font-bold text-blue-950 uppercase tracking-wider">Procurement Price Stabilization</h4>
-              <p className="text-xs text-blue-800 mt-1 leading-relaxed">
-                Pre-authorize state MSP intervention funds at Baranagar and Khandwa mandis where Sugarcane and Mustard price gaps exceed 45%.
-              </p>
-            </div>
+              return (
+                <div key={idx} className={`p-3.5 border rounded-xl ${bgClass}`}>
+                  <h4 className="text-xs font-bold uppercase tracking-wider">{dir.category}</h4>
+                  <p className={`text-xs mt-1 leading-relaxed ${textClass}`}>
+                    {dir.text}
+                  </p>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>

@@ -17,7 +17,12 @@ def format_date(d: Optional[date]) -> Optional[str]:
     return d.isoformat()
 
 
+DATA_AS_OF = date(2026, 9, 9)
+DASHBOARD_DATE = date(2026, 9, 16)
+
+
 def get_default_date_range(days: int = 30) -> Tuple[str, str]:
-    end = date.today()
+    end = DATA_AS_OF
     start = end - timedelta(days=days)
     return start.isoformat(), end.isoformat()
+

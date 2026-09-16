@@ -258,68 +258,62 @@ export default function FarmerPriceWatch() {
           )}
         </div>
 
-        {/* Crops Under Pressure Breakdown */}
+        {/* MSP Pressure by Crop: Two-Dimensional Breakdown (Below MSP % + Avg MSP Gap) */}
         <div className="agro-card p-5 space-y-3 flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between border-b border-[#5B7B10]/15 pb-3 mb-3">
               <div>
-                <h3 className="text-xs font-bold uppercase tracking-wider text-[#364E00]">
-                  Crops Under Pressure Breakdown
+                <h3 className="text-xs font-bold uppercase tracking-wider text-[#364E00] font-['Outfit']">
+                  MSP Pressure by Crop
                 </h3>
-                <p className="text-[11px] text-[#7A8F59]">Below MSP rate by commodity</p>
+                <p className="text-[11px] text-[#7A8F59]">Two-dimensional distress analysis</p>
               </div>
-              <span className="text-[10px] text-[#5B7B10] font-bold bg-[#E8EED8] px-2 py-0.5 rounded">
-                % Below MSP
+              <span className="text-[10px] text-[#5B7B10] font-bold bg-[#E8EED8] px-2 py-0.5 rounded border border-[#5B7B10]/20">
+                Below MSP % & Gap
               </span>
             </div>
+
             {isPressureLoading ? (
               <ChartSkeleton />
             ) : (
-              <BarChart
-                data={cropPressure}
-                xAxisKey="crop_name"
-                xKey="crop_name"
-                series={[
-                  { 
-                    field: 'below_msp_percentage', 
-                    yKey: 'below_msp_percentage', 
-                    label: 'Below MSP %', 
-                    color: {
-                      type: 'linear',
-                      x: 0,
-                      y: 0,
-                      x2: 0,
-                      y2: 1,
-                      colorStops: [
-                        { offset: 0, color: '#F59E0B' },
-                        { offset: 1, color: '#DC2626' }
-                      ]
-                    }
-                  }
-                ]}
-                height="190px"
-              />
-            )}
-          </div>
+              <div className="space-y-2.5">
+                {cropPressure.map((item) => {
+                  const belowRate = Number(item.below_msp_percentage || item.below_msp_rate || 0);
+                  const gapVal = Number(item.avg_msp_gap || 0);
+                  return (
+                    <div 
+                      key={item.crop_name}
+                      className="p-2.5 bg-[#F6F8EF] border border-[#5B7B10]/15 rounded-xl space-y-1.5 hover:bg-[#EEF2E0] transition-colors"
+                    >
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="font-bold text-[#1F2E0A] text-sm">{item.crop_name}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] font-bold text-rose-600 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded">
+                            {belowRate.toFixed(1)}% Below MSP
+                          </span>
+                          <span className="text-[11px] font-bold text-amber-900 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded font-mono">
+                            {gapVal > 0 ? `-₹${gapVal.toFixed(1)}/Qtl` : '—'}
+                          </span>
+                        </div>
+                      </div>
 
-          {/* Quick Crop Pressure Summary List */}
-          <div className="space-y-1.5 pt-2 border-t border-[#5B7B10]/10">
-            {cropPressure.slice(0, 3).map((item) => (
-              <div 
-                key={item.crop_name}
-                className="flex items-center justify-between text-xs px-2.5 py-1.5 rounded-lg bg-[#F6F8EF] border border-[#5B7B10]/15 hover:bg-[#EEF2E0] transition-colors"
-              >
-                <span className="font-bold text-[#1F2E0A]">{item.crop_name}</span>
-                <div className="flex items-center gap-3">
-                  <span className="text-[11px] text-[#526633]">
-                    Realized: <strong className="text-[#1F2E0A] font-semibold">{formatCurrency(item.avg_modal_price)}</strong>
-                  </span>
-                  <span className="font-bold text-xs text-rose-600 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded">
-                    {formatPct(item.below_msp_percentage || item.below_msp_rate)}
-                  </span>
-                </div>
+                      {/* Visual distress pressure progress */}
+                      <div className="w-full bg-[#E9EDDA] h-2 rounded-full overflow-hidden">
+                        <div 
+                          className="bg-gradient-to-r from-amber-500 to-rose-600 h-full rounded-full"
+                          style={{ width: `${Math.min(100, belowRate * 2.5)}%` }}
+                        />
+                      </div>
+
+                      <div className="flex justify-between text-[10px] text-[#6B7C4B]">
+                        <span>Realized: <strong className="text-[#1F2E0A]">{formatCurrency(item.avg_modal_price)}</strong></span>
+                        <span>Floor MSP: <strong className="text-[#5B7B10]">{formatCurrency(item.avg_msp)}</strong></span>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            ))}
+            )}
           </div>
         </div>
       </div>

@@ -34,9 +34,12 @@ class LogisticsRepository:
                 COUNT(*) AS total_trips,
                 COALESCE(AVG(t.transit_hours), 0.0) AS average_transit_hours,
                 COALESCE(MEDIAN(t.transit_hours), 0.0) AS median_transit_hours,
+                COALESCE(AVG(t.distance_km / 40.0), 0.0) AS expected_transit_hours,
                 COALESCE(AVG(t.delay_hours), 0.0) AS average_delay_hours,
                 COALESCE(MEDIAN(t.delay_hours), 0.0) AS median_delay_hours,
                 COALESCE(QUANTILE_CONT(t.delay_hours, 0.90), 0.0) AS p90_delay_hours,
+                COALESCE(MEDIAN(CASE WHEN t.is_delayed_flag = 1 THEN t.delay_hours ELSE NULL END), 0.0) AS median_delay_delayed_trips,
+                COALESCE(SUM(CASE WHEN t.delay_hours > 24.0 THEN 1 ELSE 0 END), 0)::INT AS critical_delay_trips,
                 CASE WHEN COUNT(*) > 0 THEN (SUM(t.is_delayed_flag)::DOUBLE / COUNT(*)::DOUBLE) * 100.0 ELSE 0.0 END AS delayed_trip_percentage,
                 CASE WHEN COUNT(*) > 0 THEN 100.0 - ((SUM(t.is_delayed_flag)::DOUBLE / COUNT(*)::DOUBLE) * 100.0) ELSE 100.0 END AS on_time_rate,
                 COALESCE(AVG(t.distance_km), 0.0) AS average_distance_km,
@@ -61,13 +64,16 @@ class LogisticsRepository:
             "total_trips": int(row[0]) if row[0] is not None else 0,
             "average_transit_hours": float(row[1]) if row[1] is not None else 0.0,
             "median_transit_hours": float(row[2]) if row[2] is not None else 0.0,
-            "average_delay_hours": float(row[3]) if row[3] is not None else 0.0,
-            "median_delay_hours": float(row[4]) if row[4] is not None else 0.0,
-            "p90_delay_hours": float(row[5]) if row[5] is not None else 0.0,
-            "delayed_trip_percentage": float(row[6]) if row[6] is not None else 0.0,
-            "on_time_rate": float(row[7]) if row[7] is not None else 100.0,
-            "average_distance_km": float(row[8]) if row[8] is not None else 0.0,
-            "anomaly_count": int(row[9]) if row[9] is not None else 0
+            "expected_transit_hours": float(row[3]) if row[3] is not None else 0.0,
+            "average_delay_hours": float(row[4]) if row[4] is not None else 0.0,
+            "median_delay_hours": float(row[5]) if row[5] is not None else 0.0,
+            "p90_delay_hours": float(row[6]) if row[6] is not None else 0.0,
+            "median_delay_delayed_trips": float(row[7]) if row[7] is not None else 0.0,
+            "critical_delay_trips": int(row[8]) if row[8] is not None else 0,
+            "delayed_trip_percentage": float(row[9]) if row[9] is not None else 0.0,
+            "on_time_rate": float(row[10]) if row[10] is not None else 100.0,
+            "average_distance_km": float(row[11]) if row[11] is not None else 0.0,
+            "anomaly_count": int(row[12]) if row[12] is not None else 0
         }
         return sanitize_nans(raw)
 
@@ -81,6 +87,7 @@ class LogisticsRepository:
                 MEDIAN(t.transit_hours) AS median_transit_hours,
                 MEDIAN(t.delay_hours) AS median_delay_hours,
                 AVG(t.delay_hours) AS average_delay_hours,
+                COALESCE(QUANTILE_CONT(t.delay_hours, 0.90), 0.0) AS p90_delay_hours,
                 (SUM(t.is_delayed_flag)::DOUBLE / COUNT(*)::DOUBLE) * 100.0 AS delayed_trip_percentage
             FROM fact_transport t
             JOIN dim_mandi m ON t.mandi_id = m.mandi_id

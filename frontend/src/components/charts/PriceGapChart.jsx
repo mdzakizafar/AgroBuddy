@@ -34,7 +34,7 @@ export default function PriceGapChart({
   const minPrice = allPrices.length > 0 ? Math.min(...allPrices) : 3000;
   const maxPrice = allPrices.length > 0 ? Math.max(...allPrices) : 4500;
   const yMin = Math.max(0, Math.floor((minPrice - 120) / 100) * 100);
-  const yMax = Math.ceil((maxPrice + 120) / 100) * 100;
+  const yMax = Math.ceil((maxPrice + 180) / 100) * 100;
 
   // Peak and Trough index points for callout highlights
   let maxModalIdx = 0;
@@ -48,11 +48,12 @@ export default function PriceGapChart({
     backgroundColor: 'transparent',
     tooltip: {
       trigger: 'axis',
+      confine: true,
       backgroundColor: '#FFFFFF',
       borderColor: 'rgba(91, 123, 16, 0.25)',
       borderWidth: 1,
       padding: [12, 16],
-      textStyle: { color: '#1F2E0A', fontSize: 12, fontFamily: 'Plus Jakarta Sans' },
+      textStyle: { color: '#1F2E0A', fontSize: 12, fontFamily: 'Outfit, sans-serif' },
       formatter: (params) => {
         if (!params || params.length === 0) return '';
         const idx = params[0].dataIndex;
@@ -96,11 +97,15 @@ export default function PriceGapChart({
     },
     legend: {
       top: 0,
-      textStyle: { color: '#526633', fontSize: 11, fontWeight: 600 },
+      right: '2%',
+      icon: 'circle',
+      itemWidth: 8,
+      itemHeight: 8,
+      textStyle: { color: '#526633', fontSize: 11, fontWeight: 600, fontFamily: 'Outfit, sans-serif' },
       data: ['Realized Modal Price', 'Govt MSP Floor Benchmark']
     },
     grid: {
-      top: 36,
+      top: 34,
       left: 15,
       right: 20,
       bottom: 25,
@@ -143,6 +148,14 @@ export default function PriceGapChart({
         symbol: 'circle',
         symbolSize: 5,
         showSymbol: false,
+        emphasis: {
+          focus: 'series',
+          itemStyle: {
+            borderWidth: 2,
+            borderColor: '#FFFFFF',
+            shadowBlur: 8
+          }
+        },
         lineStyle: {
           width: 3.2,
           color: '#D97706',

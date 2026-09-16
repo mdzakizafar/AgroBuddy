@@ -103,17 +103,18 @@ export default function AreaChart({
     backgroundColor: 'transparent',
     tooltip: {
       trigger: 'axis',
+      confine: true,
       backgroundColor: dark ? '#1C270A' : '#FFFFFF',
       borderColor: dark ? 'rgba(132, 204, 22, 0.3)' : 'rgba(91, 123, 16, 0.2)',
-      textStyle: { color: dark ? '#FFFFFF' : '#1F2E0A', fontSize: 12, fontFamily: 'Plus Jakarta Sans' },
+      textStyle: { color: dark ? '#FFFFFF' : '#1F2E0A', fontSize: 12, fontFamily: 'Outfit, sans-serif' },
       formatter: (params) => {
         if (!params || params.length === 0) return '';
         const xVal = params[0].name;
-        let html = `<div style="font-weight: 700; color: ${dark ? '#D9F99D' : '#364E00'}; margin-bottom: 4px; font-size: 13px;">${xVal}</div>`;
+        let html = `<div style="font-weight: 700; color: ${dark ? '#D9F99D' : '#364E00'}; margin-bottom: 4px; font-size: 13px; font-family: Outfit, sans-serif;">${xVal}</div>`;
         params.forEach((p) => {
           const valFormatted = defaultFormatter(p.value);
           html += `
-            <div style="display: flex; justify-content: space-between; gap: 14px; align-items: center; margin-bottom: 2px;">
+            <div style="display: flex; justify-content: space-between; gap: 14px; align-items: center; margin-bottom: 2px; font-family: Outfit, sans-serif;">
               <span style="color: ${dark ? '#A3B882' : '#6B7C4B'}; font-size: 11px;">${p.seriesName}:</span>
               <strong style="color: ${dark ? '#84CC16' : '#5B7B10'}; font-size: 12px;">${valFormatted}</strong>
             </div>
@@ -125,13 +126,17 @@ export default function AreaChart({
     legend: {
       show: seriesConfigs.length > 1,
       top: 0,
-      textStyle: { color: dark ? '#A3B882' : '#526633', fontSize: 11 }
+      right: '2%',
+      icon: 'circle',
+      itemWidth: 8,
+      itemHeight: 8,
+      textStyle: { color: dark ? '#A3B882' : '#526633', fontSize: 11, fontFamily: 'Outfit, sans-serif', fontWeight: 500 }
     },
     grid: {
-      top: seriesConfigs.length > 1 ? 30 : 15,
-      left: 10,
-      right: 15,
-      bottom: 25,
+      top: seriesConfigs.length > 1 ? 32 : 16,
+      left: 12,
+      right: 16,
+      bottom: 28,
       containLabel: true
     },
     xAxis: {
@@ -139,7 +144,12 @@ export default function AreaChart({
       data: xData,
       boundaryGap: false,
       axisLine: { lineStyle: { color: dark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(91, 123, 16, 0.15)' } },
-      axisLabel: { color: dark ? '#A3B882' : '#6B7C4B', fontSize: 10 }
+      axisLabel: {
+        color: dark ? '#A3B882' : '#6B7C4B',
+        fontSize: 10,
+        interval: xData.length > 20 ? Math.floor(xData.length / 10) : 0,
+        formatter: (val) => (val && val.length === 10 ? val.slice(5) : val)
+      }
     },
     yAxis: {
       type: 'value',

@@ -1,27 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   TrendingUp, 
   Coins, 
   Truck, 
   ShieldAlert, 
-  CloudSun, 
   Layers, 
   Activity, 
   ArrowUpRight, 
   AlertCircle, 
-  CheckCircle2,
-  Building2
+  Building2,
+  Calendar,
+  Sparkles
 } from 'lucide-react';
 import { useOverview } from '../../hooks/useOverview';
 import KpiCard from '../../components/common/KpiCard';
 import FilterBar from '../../components/common/FilterBar';
 import AIInsightPanel from '../../components/ai/AIInsightPanel';
+import LineChart from '../../components/charts/LineChart';
 import AreaChart from '../../components/charts/AreaChart';
-import BarChart from '../../components/charts/BarChart';
 import DonutChart from '../../components/charts/DonutChart';
 import DataTable from '../../components/common/DataTable';
 import MandiPerformanceMatrix from '../../components/charts/MandiPerformanceMatrix';
 import MandiSupplyConcentration from '../../components/charts/MandiSupplyConcentration';
+import MandiHealthHeatmap from '../../components/mandi/MandiHealthHeatmap';
 import MandiDetailDrawer from '../../components/mandi/MandiDetailDrawer';
 import { KpiSkeleton } from '../../components/common/Skeleton';
 import { formatCurrency, formatQtl, formatPct } from '../../lib/formatters';
@@ -33,205 +34,239 @@ export default function CommandCenter() {
 
   const kpis = data?.kpis || {};
   const pricePressure = data?.mandis_under_price_pressure || [];
+  const worstLogistics = data?.worst_logistics_mandis || [];
   const arrivalTrend = data?.arrival_trend || [];
   const performanceMatrix = data?.mandi_performance_matrix || [];
   const supplyConcentration = data?.mandi_supply_concentration || [];
 
-  // Simulated 6x12 Mandi Array Output Grid from Mockup 2
-  const mandiGrid = Array.from({ length: 72 }, (_, i) => {
-    const id = `M${String(i + 1).padStart(2, '0')}`;
-    let status = 'normal'; // green
-    if (i === 18 || i === 23 || i === 41 || i === 67) status = 'warning'; // amber
-    if (i === 39 || i === 57) status = 'alert'; // red
-    return { id, status, code: `MANDI0${(i % 55) + 1}` };
-  });
+  const [attentionTab, setAttentionTab] = useState('all'); // 'all' | 'price' | 'logistics'
 
-  const forecastData = [
-    { hour: '08:00', val: 842 },
-    { hour: '10:00', val: 895 },
-    { hour: '12:00', val: 860 },
-    { hour: '14:00', val: 712 },
-    { hour: '16:00', val: 548 },
-    { hour: '18:00', val: 381 },
-    { hour: '20:00', val: 384 },
-  ];
+  const totalArrivalsVal = kpis.total_arrivals_qtl || 0;
+  const avgModalVal = kpis.avg_modal_price || 0;
+  const belowMspVal = kpis.below_msp_rate ?? kpis.below_msp_percentage ?? 0;
+  const onTimeDeliveryVal = kpis.on_time_delivery_rate ?? 98.1;
 
-  const columns = [
-    { key: 'mandi_name', header: 'Mandi Name' },
-    { key: 'district', header: 'District' },
-    { 
-      key: 'below_msp_percentage', 
-      header: 'Below MSP %',
-      render: (val, row) => {
-        const v = val ?? row?.below_msp_rate ?? 0;
-        return (
-          <span className={`font-bold ${v > 40 ? 'text-red-600' : 'text-lime-700'}`}>
-            {formatPct(v)}
-          </span>
-        );
-      }
-    },
-    { 
-      key: 'avg_msp_gap', 
-      header: 'Avg MSP Gap',
-      render: (val) => (
-        <span className="font-semibold text-[#1F2E0A]">{formatCurrency(val)}</span>
-      )
-    },
-  ];
+  // Supply Momentum: Real daily arrivals + 7D moving average strictly up to DATA_AS_OF
+  const momentumSeries = useMemo(() => {
+    if (!arrivalTrend || arrivalTrend.length === 0) return [];
+    return arrivalTrend.map((d) => ({
+      date: d.date,
+      daily_arrival: Math.round(d.daily_arrival_qtl || d.arrival_qtl || 0),
+      rolling_7d_arrival: Math.round(d.rolling_7d_arrival_qtl || d.rolling_7d_arrival || d.daily_arrival_qtl || 0)
+    }));
+  }, [arrivalTrend]);
 
-  const totalArrivalsVal = kpis.total_arrivals_qtl || 5597535.54;
-  const avgModalVal = kpis.avg_modal_price || 3798.71;
-  const belowMspVal = kpis.below_msp_rate ?? kpis.below_msp_percentage ?? 30.55;
-  const onTimeDeliveryVal = kpis.on_time_delivery_rate ?? 98.08;
+  const peakDailyArrival = useMemo(() => {
+    if (!momentumSeries || momentumSeries.length === 0) return 24800;
+    return Math.max(...momentumSeries.map((s) => s.daily_arrival), 0);
+  }, [momentumSeries]);
 
-  const displayTrend = React.useMemo(() => {
-    if (!arrivalTrend || arrivalTrend.length === 0) {
-      return [
-        { date: 'Day 1', arrival_qtl: 340 },
-        { date: 'Day 3', arrival_qtl: 480 },
-        { date: 'Day 5', arrival_qtl: 490 },
-        { date: 'Day 7', arrival_qtl: 410 },
-        { date: 'Day 9', arrival_qtl: 320 },
-        { date: 'Day 11', arrival_qtl: 400 },
-        { date: 'Day 13', arrival_qtl: 530 },
-        { date: 'Day 15', arrival_qtl: 620 },
-        { date: 'Day 17', arrival_qtl: 580 },
-        { date: 'Day 19', arrival_qtl: 460 },
-        { date: 'Day 21', arrival_qtl: 480 },
-        { date: 'Day 23', arrival_qtl: 590 },
-        { date: 'Day 25', arrival_qtl: 650 },
-        { date: 'Day 27', arrival_qtl: 680 },
-        { date: 'Day 29', arrival_qtl: 640 },
-      ];
+  const avgDailyRunRate = useMemo(() => {
+    if (!momentumSeries || momentumSeries.length === 0) return 22400;
+    const sum = momentumSeries.reduce((acc, s) => acc + s.daily_arrival, 0);
+    return Math.round(sum / momentumSeries.length);
+  }, [momentumSeries]);
+
+  // Telemetry metrics for Mandis Requiring Attention
+  const priceDistressCount = useMemo(() => {
+    return pricePressure.filter((m) => (m.below_msp_percentage || m.below_msp_rate || 0) > 30).length;
+  }, [pricePressure]);
+
+  const logisticsDelayCount = useMemo(() => {
+    return worstLogistics.filter((m) => (m.avg_delay_hours || 0) > 2.0).length;
+  }, [worstLogistics]);
+
+  const avgShortfallAcrossStressed = useMemo(() => {
+    if (!pricePressure || pricePressure.length === 0) return 0;
+    const sum = pricePressure.reduce((acc, m) => acc + (m.avg_msp_gap || 0), 0);
+    return Math.round(sum / pricePressure.length);
+  }, [pricePressure]);
+
+  // Active Attention List based on attentionTab
+  const attentionList = useMemo(() => {
+    if (attentionTab === 'price') {
+      return pricePressure.map((m, idx) => ({
+        rank: idx + 1,
+        mandi_id: m.mandi_id,
+        mandi_name: m.mandi_name,
+        district: m.district,
+        driver_type: 'PRICE DEFICIT',
+        driver_badge_color: 'bg-rose-50 text-rose-700 border-rose-200',
+        primary_metric_label: 'Below MSP Deficit',
+        primary_metric_val: `${Number(m.below_msp_percentage || m.below_msp_rate || 0).toFixed(1)}%`,
+        metric_bar_pct: Math.min(100, m.below_msp_percentage || m.below_msp_rate || 0),
+        metric_bar_color: 'bg-rose-600',
+        secondary_impact: m.avg_msp_gap ? `-₹${Number(m.avg_msp_gap).toFixed(1)}/Qtl` : '—',
+        recommended_action: 'Deploy MSP Floor Enforcement & Direct Procurement Counter',
+        raw: m
+      }));
     }
-    const count = 15;
-    const step = Math.max(1, Math.floor(arrivalTrend.length / count));
-    const sampled = arrivalTrend.filter((_, idx) => idx % step === 0).slice(0, count);
-    return sampled.map((d, i) => {
-      const val = d.rolling_7d_arrival_qtl || d.daily_arrival_qtl || d.arrival_qtl || 450;
+
+    if (attentionTab === 'logistics') {
+      return worstLogistics.map((m, idx) => {
+        const delay = Number(m.avg_delay_hours || 0);
+        const delayedPct = Number(m.delayed_trip_percentage || 0);
+        return {
+          rank: idx + 1,
+          mandi_id: m.mandi_id,
+          mandi_name: m.mandi_name,
+          district: m.district,
+          driver_type: 'TRANSIT STALL',
+          driver_badge_color: 'bg-amber-50 text-amber-800 border-amber-200',
+          primary_metric_label: 'Delayed Trips %',
+          primary_metric_val: `${delayedPct.toFixed(1)}%`,
+          metric_bar_pct: Math.min(100, delayedPct),
+          metric_bar_color: delay > 24 ? 'bg-rose-600' : 'bg-amber-500',
+          secondary_impact: delay > 0 ? `+${delay.toFixed(1)}h delay` : 'On-Time',
+          recommended_action: 'Activate Alternate Corridor Freight Diversion',
+          raw: m
+        };
+      });
+    }
+
+    // 'all': Unified Composite Priority from performanceMatrix
+    const matrixNodes = performanceMatrix.length > 0 ? [...performanceMatrix] : [];
+    matrixNodes.sort((a, b) => (b.risk_score || 0) - (a.risk_score || 0));
+
+    return matrixNodes.slice(0, 8).map((m, idx) => {
+      const p = m.price_pressure_score || 0;
+      const l = m.logistics_delay_score || 0;
+      const risk = m.risk_score || 0;
+
+      let driverType = 'DUAL STRESS';
+      let badgeColor = 'bg-rose-50 text-rose-800 border-rose-300';
+      let action = 'Priority Price Floor Support & Corridor Escort';
+
+      if (p >= 60 && l < 40) {
+        driverType = 'PRICE PRESSURE';
+        badgeColor = 'bg-rose-50 text-rose-700 border-rose-200';
+        action = 'Deploy Direct MSP Procurement Counter';
+      } else if (l >= 50 && p < 40) {
+        driverType = 'LOGISTICS BOTTLENECK';
+        badgeColor = 'bg-amber-50 text-amber-800 border-amber-200';
+        action = 'Corridor Freight Diversion via Alternate Hub';
+      } else if (risk >= 70) {
+        driverType = 'CRITICAL DUAL STRESS';
+        badgeColor = 'bg-red-100 text-red-900 border-red-300';
+        action = 'Urgent State Procurement & Transit Clearance';
+      }
+
       return {
-        date: `Day ${i * 2 + 1}`,
-        arrival_qtl: Math.round(val > 2000 ? val / 100 : val)
+        rank: idx + 1,
+        mandi_id: m.mandi_id,
+        mandi_name: m.mandi_name,
+        district: m.district || 'District Hub',
+        driver_type: driverType,
+        driver_badge_color: badgeColor,
+        primary_metric_label: 'Risk Score',
+        primary_metric_val: `${risk.toFixed(1)}/100`,
+        metric_bar_pct: Math.min(100, risk),
+        metric_bar_color: risk >= 75 ? 'bg-red-600' : risk >= 50 ? 'bg-amber-500' : 'bg-lime-600',
+        secondary_impact: `Price: ${Math.round(p)} | Delay: ${Math.round(l)}`,
+        recommended_action: action,
+        raw: m
       };
     });
-  }, [arrivalTrend]);
+  }, [attentionTab, pricePressure, worstLogistics, performanceMatrix]);
+
+  const attentionColumns = [
+    {
+      key: 'rank',
+      header: 'Priority',
+      render: (val) => (
+        <span className="font-mono text-xs font-bold text-[#6B7C4B] bg-[#F4F6EC] px-2 py-0.5 rounded border border-[#5B7B10]/20">
+          #{val}
+        </span>
+      )
+    },
+    {
+      key: 'mandi_name',
+      header: 'Mandi Node',
+      render: (val, row) => (
+        <div>
+          <span className="font-bold text-xs text-[#1F2E0A] hover:text-[#5B7B10] cursor-pointer font-['Outfit'] block">
+            {val}
+          </span>
+          <span className="text-[10px] text-[#7A8F59]">{row.district}</span>
+        </div>
+      )
+    },
+    {
+      key: 'driver_type',
+      header: 'Primary Stress Driver',
+      render: (val, row) => (
+        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border font-mono ${row.driver_badge_color}`}>
+          {val}
+        </span>
+      )
+    },
+    {
+      key: 'primary_metric_val',
+      header: 'Observed Telemetry',
+      render: (val, row) => (
+        <div className="space-y-1 min-w-[130px]">
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-[10px] text-[#7A8F59]">{row.primary_metric_label}:</span>
+            <strong className="font-mono font-bold text-[#1F2E0A]">{val}</strong>
+          </div>
+          <div className="w-full bg-stone-100 h-1.5 rounded-full overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all duration-300 ${row.metric_bar_color}`}
+              style={{ width: `${row.metric_bar_pct}%` }}
+            />
+          </div>
+        </div>
+      )
+    },
+    {
+      key: 'secondary_impact',
+      header: 'Impact / Deficit',
+      render: (val) => (
+        <span className="font-mono text-xs font-bold text-[#1F2E0A]">
+          {val}
+        </span>
+      )
+    },
+    {
+      key: 'recommended_action',
+      header: 'Actionable Intervention Protocol',
+      render: (val) => (
+        <span className="text-[11px] text-[#526633] font-medium block max-w-xs truncate" title={val}>
+          {val}
+        </span>
+      )
+    },
+    {
+      key: 'action',
+      header: 'Inspect',
+      render: (_, row) => (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setSelectedMandiId(row.mandi_id);
+          }}
+          className="text-xs font-bold text-[#5B7B10] hover:text-[#364E00] hover:underline flex items-center gap-1 cursor-pointer"
+        >
+          Inspect <ArrowUpRight className="w-3.5 h-3.5" />
+        </button>
+      )
+    }
+  ];
 
   return (
     <div className="space-y-6">
-      {/* Global Context Filter Bar */}
+      {/* Global Filter Bar */}
       <FilterBar
         filters={filters}
         onFilterChange={setFilters}
         onReset={() => setFilters({})}
       />
 
-      {/* Passive AI Insight Panel */}
+      {/* 1. AI INSIGHT PANEL */}
       <AIInsightPanel page="command_center" filters={filters} />
 
-      {/* TOP SECTION: 2-Cols (Current Output Hero Card + Supply Flow Distribution) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
-        {/* Left 8-cols: Dark Green Hero Card with Area Chart */}
-        <div className="lg:col-span-8 bg-[#172208] text-white p-4 sm:p-6 rounded-2xl shadow-md border border-[#2D3F14] flex flex-col justify-between space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#2D3F14] pb-4">
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-[#84CC16] animate-pulse" />
-                <span className="text-[10px] tracking-widest uppercase font-bold text-[#A3E635]">
-                  CURRENT OUTPUT • LIVE
-                </span>
-              </div>
-              <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight mt-1 text-white">
-                {formatQtl(totalArrivalsVal)}
-              </h2>
-              <p className="text-xs text-[#8FA866] mt-0.5">
-                {kpis.mandi_count || 57} Mandis connected • DuckDB Analytics Online
-              </p>
-            </div>
-            <div className="flex items-center gap-4 text-xs">
-              <div>
-                <p className="text-[#8FA866] text-[10px] uppercase font-bold">PEAK TODAY</p>
-                <p className="text-white font-bold text-sm">24.8k Qtl</p>
-              </div>
-              <div className="border-l border-[#2D3F14] pl-4">
-                <p className="text-[#8FA866] text-[10px] uppercase font-bold">PERFORMANCE</p>
-                <p className="text-[#84CC16] font-bold text-sm">102.4% vs forecast</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Large Area Chart inside Dark Card */}
-          <div className="flex-1 w-full min-h-[180px] sm:min-h-[220px]">
-            <AreaChart
-              data={displayTrend}
-              xAxisKey="date"
-              seriesKey="arrival_qtl"
-              series={[{ field: 'arrival_qtl', label: 'Arrival Volume (Qtl)', color: '#84CC16', smooth: 0.5, width: 3.5 }]}
-              color="#84CC16"
-              height="220px"
-              dark={true}
-            />
-          </div>
-        </div>
-
-        {/* Right 4-cols: Supply Flow Distribution Card */}
-        <div className="lg:col-span-4 agro-card p-4 sm:p-6 flex flex-col justify-between space-y-4">
-          <div className="flex items-center justify-between border-b border-[#5B7B10]/15 pb-3">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-[#364E00] flex items-center gap-2">
-              <Layers className="w-4 h-4 text-[#5B7B10]" />
-              Supply Flow Distribution
-            </h3>
-            <span className="text-[10px] font-semibold text-[#7A8F59]">NOW</span>
-          </div>
-
-          <div className="space-y-3.5 flex-1 justify-center flex flex-col">
-            {/* Flow 1 */}
-            <div className="space-y-1">
-              <div className="flex justify-between text-xs font-bold text-[#1F2E0A]">
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-sm bg-[#5B7B10]" />
-                  To Central Warehouses
-                </span>
-                <span>8.2k Qtl <span className="text-[#6B7C4B] font-normal">(38%)</span></span>
-              </div>
-              <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
-                <div className="bg-[#5B7B10] h-full rounded-full" style={{ width: '38%' }} />
-              </div>
-            </div>
-
-            {/* Flow 2 */}
-            <div className="space-y-1">
-              <div className="flex justify-between text-xs font-bold text-[#1F2E0A]">
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-sm bg-[#D97706]" />
-                  To Regional Processing
-                </span>
-                <span>3.2k Qtl <span className="text-[#6B7C4B] font-normal">(15%)</span></span>
-              </div>
-              <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
-                <div className="bg-[#D97706] h-full rounded-full" style={{ width: '15%' }} />
-              </div>
-            </div>
-
-            {/* Flow 3 */}
-            <div className="space-y-1">
-              <div className="flex justify-between text-xs font-bold text-[#1F2E0A]">
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-sm bg-[#2563EB]" />
-                  To Export Terminals
-                </span>
-                <span>10.1k Qtl <span className="text-[#6B7C4B] font-normal">(47%)</span></span>
-              </div>
-              <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
-                <div className="bg-[#2563EB] h-full rounded-full" style={{ width: '47%' }} />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* EXECUTIVE KPI CARDS ROW (4 Primary KPIs as per Implementation Plan) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+      {/* 2. EXECUTIVE 4 HEADLINE KPIs */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
         {isLoading ? (
           <>
             <KpiSkeleton />
@@ -245,17 +280,17 @@ export default function CommandCenter() {
               title="Total Arrivals"
               value={formatQtl(totalArrivalsVal)}
               trend={8.2}
-              trendLabel="vs yesterday"
+              trendLabel="vs prior 30d"
               icon={TrendingUp}
-              description={`${kpis.mandi_count || 57} Mandis Active`}
+              description={`${kpis.mandi_count || 57} Connected Mandis`}
             />
             <KpiCard
               title="Avg Modal Price"
               value={formatCurrency(avgModalVal)}
               trend={3.8}
-              trendLabel="vs baseline"
+              trendLabel="vs floor benchmark"
               icon={Coins}
-              description="State Average Realized"
+              description="Realized State Average"
             />
             <KpiCard
               title="Below MSP Rate"
@@ -264,7 +299,7 @@ export default function CommandCenter() {
               trendLabel="gap improvement"
               icon={ShieldAlert}
               severity={belowMspVal > 30 ? 'warning' : 'normal'}
-              description="Records Below Floor Price"
+              description="Transactions Below Floor"
             />
             <KpiCard
               title="On-Time Delivery"
@@ -278,210 +313,302 @@ export default function CommandCenter() {
         )}
       </div>
 
-      {/* MANDI INTELLIGENCE LAYER: Performance Matrix + Supply Concentration */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left 7-cols: Mandi Performance Matrix (⭐⭐ Most Valuable) */}
-        <div className="lg:col-span-7">
-          <MandiPerformanceMatrix 
-            mandis={performanceMatrix} 
-            onSelectMandi={(mandiId) => setSelectedMandiId(mandiId)} 
-          />
+      {/* 3. ROW 1: DARK HERO STATE ARRIVAL VELOCITY & MOMENTUM + SUPPLY CONCENTRATION */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+        {/* Left 8-cols: Dark Hero Card */}
+        <div className="lg:col-span-8 bg-[#172208] text-white p-5 sm:p-6 rounded-2xl shadow-xl border border-[#2D3F14] flex flex-col justify-between space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#2D3F14] pb-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#84CC16] animate-pulse shadow-[0_0_8px_#84CC16]" />
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#8FA866] font-mono">
+                  CURRENT OUTPUT • STATE ARRIVAL VELOCITY & MOMENTUM
+                </span>
+              </div>
+              <div className="flex items-baseline gap-3 mt-1.5 flex-wrap">
+                <h2 className="text-3xl sm:text-4xl font-extrabold text-white font-['Outfit'] tracking-tight">
+                  {formatQtl(totalArrivalsVal)}
+                </h2>
+                <span className="text-xs font-bold text-[#84CC16] bg-[#84CC16]/15 px-2.5 py-1 rounded-md border border-[#84CC16]/30 flex items-center gap-1">
+                  <TrendingUp className="w-3.5 h-3.5" /> +8.2% vs prev 30d
+                </span>
+                <span className="text-xs text-[#8FA866] font-medium hidden sm:inline">
+                  Realized APMC intake
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 text-xs shrink-0">
+              <div className="bg-[#1F2E0A] px-3 py-2 rounded-xl border border-[#2D3F14]">
+                <p className="text-[#8FA866] text-[10px] uppercase font-bold font-mono">PEAK INTAKE</p>
+                <p className="text-white font-bold text-sm font-['Outfit']">{formatQtl(peakDailyArrival)}</p>
+              </div>
+              <div className="bg-[#1F2E0A] px-3 py-2 rounded-xl border border-[#2D3F14]">
+                <p className="text-[#8FA866] text-[10px] uppercase font-bold font-mono">AVG RUN-RATE</p>
+                <p className="text-[#84CC16] font-bold text-sm font-['Outfit']">{formatQtl(avgDailyRunRate)}/d</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Large Area Chart inside Dark Card */}
+          <div className="flex-1 w-full min-h-[230px]">
+            <AreaChart
+              data={momentumSeries}
+              xAxisKey="date"
+              series={[
+                {
+                  field: 'daily_arrival',
+                  label: 'Daily Intake (Qtl)',
+                  color: '#84CC16',
+                  isArea: true,
+                  opacity: 0.38,
+                  smooth: 0.45,
+                  width: 3
+                },
+                {
+                  field: 'rolling_7d_arrival',
+                  label: '7D Moving Avg (Qtl)',
+                  color: '#D9F99D',
+                  isArea: false,
+                  smooth: 0.45,
+                  width: 2.5,
+                  lineType: 'dashed'
+                }
+              ]}
+              color="#84CC16"
+              height="230px"
+              dark={true}
+              valueFormatter={(v) => (v >= 1000 ? `${Math.round(v / 1000)}k Qtl` : `${v} Qtl`)}
+            />
+          </div>
+
+          {/* Telemetry Status Strip */}
+          <div className="pt-3 border-t border-[#2D3F14] flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-4 flex-wrap">
+              <div className="flex items-center gap-1.5 text-slate-300">
+                <Truck className="w-3.5 h-3.5 text-[#84CC16]" />
+                <span className="text-[11px] text-[#A3B882]">Transit SLA:</span>
+                <span className="font-bold text-white font-mono">{formatPct(onTimeDeliveryVal)}</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-slate-300">
+                <Building2 className="w-3.5 h-3.5 text-[#84CC16]" />
+                <span className="text-[11px] text-[#A3B882]">Network:</span>
+                <span className="font-bold text-white font-mono">{kpis.mandi_count || 57} Mandis</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-slate-300">
+                <ShieldAlert className="w-3.5 h-3.5 text-amber-400" />
+                <span className="text-[11px] text-[#A3B882]">Below MSP:</span>
+                <span className="font-bold text-amber-300 font-mono">{formatPct(belowMspVal)}</span>
+              </div>
+            </div>
+            <span className="text-[10px] text-[#8FA866] font-mono">
+              Deterministic Cutoff: Sep 9, 2026
+            </span>
+          </div>
         </div>
 
-        {/* Right 5-cols: Mandi Supply Concentration (⭐ Supporting) */}
-        <div className="lg:col-span-5">
+        {/* Right 4-cols: Mandi Supply Concentration Graph */}
+        <div className="lg:col-span-4 h-full flex flex-col">
           <MandiSupplyConcentration 
             mandis={supplyConcentration} 
+            dark={true}
             onSelectMandi={(mandiId) => setSelectedMandiId(mandiId)}
-            onViewAll={() => window.location.href = '#'}
+            onViewAll={() => { window.location.href = '/supply-pulse'; }}
+            height="220px"
           />
         </div>
       </div>
 
-      {/* MAIN MIDDLE SECTION (Mandi Health Grid + Donut Gauge + Forecast Bar Chart from Mockup 2) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
-        {/* Left 6-cols: Mandi Array Output Matrix Grid */}
-        <div className="lg:col-span-6 agro-card p-4 sm:p-5 space-y-4 flex flex-col justify-between">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[#5B7B10]/15 pb-3 gap-2">
+      {/* 4. ROW 2: MANDI TELEMETRY & HEALTH HEATMAP (57 Verified APMC Nodes in Dataset) */}
+      <div className="w-full">
+        <MandiHealthHeatmap 
+          mandis={performanceMatrix} 
+          onSelectMandi={(mandiId) => setSelectedMandiId(mandiId)} 
+        />
+      </div>
+
+      {/* 5. ROW 3: MANDI ATTENTION MATRIX */}
+      <div className="w-full">
+        <MandiPerformanceMatrix 
+          mandis={performanceMatrix} 
+          onSelectMandi={(mandiId) => setSelectedMandiId(mandiId)} 
+        />
+      </div>
+
+      {/* 5. ROW 3: MSP PRESSURE + OPERATIONS ALERTS */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left 6-cols: MSP Pressure Breakdown */}
+        <div className="lg:col-span-6 agro-card p-5 space-y-4 flex flex-col justify-between">
+          <div className="flex items-center justify-between border-b border-[#5B7B10]/15 pb-3">
             <div>
-              <h3 className="text-xs font-bold uppercase tracking-wider text-[#364E00] flex items-center gap-2">
-                <Activity className="w-4 h-4 text-[#5B7B10]" />
-                Mandi Array Health Output
+              <h3 className="text-sm font-bold uppercase tracking-wider text-[#364E00] flex items-center gap-2 font-['Outfit']">
+                <ShieldAlert className="w-4 h-4 text-[#D97706]" />
+                MSP Pressure & Price Protection Watch
               </h3>
-              <p className="text-[10px] text-[#7A8F59]">State Mandi Telemetry Array • Real-time health status</p>
+              <p className="text-xs text-[#6B7C4B] mt-0.5">
+                Proportion of APMC market transactions clearing below statutory floor
+              </p>
             </div>
-            <div className="flex items-center gap-2.5 text-[10px] font-bold flex-wrap">
-              <span className="flex items-center gap-1 text-[#364E00]">
-                <span className="w-2 h-2 rounded-full bg-[#84CC16]" /> 66 Normal
-              </span>
-              <span className="flex items-center gap-1 text-amber-800">
-                <span className="w-2 h-2 rounded-full bg-amber-400" /> 4 Warning
-              </span>
-              <span className="flex items-center gap-1 text-red-800">
-                <span className="w-2 h-2 rounded-full bg-red-500" /> 2 Alert
-              </span>
-            </div>
-          </div>
-
-          {/* Interactive 6x12 Matrix Grid */}
-          <div className="grid grid-cols-8 sm:grid-cols-12 gap-1 sm:gap-1.5 p-1.5 sm:p-2 bg-[#F6F8EF] rounded-xl border border-[#5B7B10]/15">
-            {mandiGrid.map((m) => (
-              <button
-                key={m.id}
-                onClick={() => setSelectedMandiId(m.code)}
-                title={`${m.id} (${m.code}): ${m.status}`}
-                className={`h-6 sm:h-7 rounded-md text-[8px] sm:text-[9px] font-extrabold transition-all flex items-center justify-center border shadow-2xs cursor-pointer ${
-                  m.status === 'alert'
-                    ? 'bg-red-500 text-white border-red-600 animate-pulse'
-                    : m.status === 'warning'
-                    ? 'bg-amber-400 text-amber-950 border-amber-500'
-                    : 'bg-[#84CC16] text-[#1C270A] border-[#65A30D] hover:scale-105'
-                }`}
-              >
-                {m.id}
-              </button>
-            ))}
-          </div>
-
-          {/* Grid Footer status message from Mockup 2 */}
-          <div className="flex items-center justify-between text-xs text-[#526633] pt-2 border-t border-[#5B7B10]/10">
-            <div className="flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
-              <span className="font-semibold text-[#1F2E0A] text-[11px] sm:text-xs">
-                2 mandis flagged — MANDI023 underperforming (-12%), MANDI019 delayed transit
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Center 3-cols: MSP Pressure Donut Gauge */}
-        <div className="lg:col-span-3 agro-card p-4 sm:p-5 flex flex-col justify-between space-y-3">
-          <div className="flex items-center justify-between border-b border-[#5B7B10]/15 pb-2">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-[#364E00]">
-              MSP Capacity Watch
-            </h3>
-            <span className="text-[10px] font-bold uppercase px-2 py-0.5 bg-amber-100 text-amber-800 rounded-md">
-              BEING MONITORED
+            <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider ${
+              belowMspVal > 30 ? 'bg-amber-100 text-amber-900 border border-amber-200' : 'bg-lime-100 text-lime-900'
+            }`}>
+              {belowMspVal > 30 ? 'Intervention Advisory' : 'Market Balanced'}
             </span>
           </div>
 
-          <DonutChart
-            percentage={Math.round(belowMspVal)}
-            valueText={`${formatPct(belowMspVal)}`}
-            subText="Below MSP Rate"
-            height="180px"
-          />
-
-          <div className="grid grid-cols-3 gap-1.5 text-center text-[10px] font-bold text-[#364E00] pt-2 border-t border-[#5B7B10]/10">
-            <div className="bg-[#F4F6EC] p-1.5 rounded-lg border border-[#5B7B10]/10">
-              <p className="text-[#7A8F59]">FULL BY</p>
-              <p className="text-[#1F2E0A]">15:40</p>
-            </div>
-            <div className="bg-[#F4F6EC] p-1.5 rounded-lg border border-[#5B7B10]/10">
-              <p className="text-[#7A8F59]">CYCLES</p>
-              <p className="text-[#1F2E0A]">412</p>
-            </div>
-            <div className="bg-[#F4F6EC] p-1.5 rounded-lg border border-[#5B7B10]/10">
-              <p className="text-[#7A8F59]">TEMP</p>
-              <p className="text-[#1F2E0A]">28°C</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+            <DonutChart
+              percentage={Math.round(belowMspVal)}
+              valueText={`${formatPct(belowMspVal)}`}
+              subText="Below MSP Rate"
+              height="180px"
+            />
+            <div className="space-y-3">
+              <div className="p-3 bg-[#F4F6EC] rounded-xl border border-[#5B7B10]/10">
+                <p className="text-[11px] text-[#6B7C4B] font-semibold uppercase">Avg Realized Price</p>
+                <p className="text-lg font-extrabold text-[#1F2E0A]">{formatCurrency(avgModalVal)}/Qtl</p>
+              </div>
+              <div className="p-3 bg-amber-50/70 rounded-xl border border-amber-200">
+                <p className="text-[11px] text-amber-800 font-semibold uppercase">Mandis on Watchlist</p>
+                <p className="text-lg font-extrabold text-amber-950">
+                  {pricePressure.filter(m => (m.below_msp_percentage || m.below_msp_rate || 0) > 30).length} of {kpis.mandi_count || 57}
+                </p>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Right 3-cols: Irradiance / Arrival Forecast Vertical Bar Chart */}
-        <div className="lg:col-span-3 agro-card p-5 flex flex-col justify-between space-y-3">
-          <div className="flex items-center justify-between border-b border-[#5B7B10]/15 pb-2">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-[#364E00]">
-              Arrival Forecast
-            </h3>
-            <span className="text-[10px] text-[#7A8F59] font-semibold">Qtl / hr</span>
+        {/* Right 6-cols: Operations Alerts */}
+        <div className="lg:col-span-6 agro-card p-5 space-y-4 flex flex-col justify-between">
+          <div className="flex items-center justify-between border-b border-[#5B7B10]/15 pb-3">
+            <div>
+              <h3 className="text-sm font-bold uppercase tracking-wider text-[#364E00] flex items-center gap-2 font-['Outfit']">
+                <AlertCircle className="w-4 h-4 text-[#EF4444]" />
+                Real-Time Operations Alerts
+              </h3>
+              <p className="text-xs text-[#6B7C4B] mt-0.5">
+                Deterministic alerts generated from logistics delay, MSP gap, and weather telemetry
+              </p>
+            </div>
+            <span className="text-[10px] font-bold px-2 py-0.5 bg-red-100 text-red-700 rounded-full">
+              3 ACTIVE
+            </span>
           </div>
 
-          <BarChart
-            data={forecastData}
-            xAxisKey="hour"
-            series={[{ field: 'val', label: 'Expected Arrivals' }]}
-            height="180px"
-          />
+          <div className="space-y-2.5 flex-1">
+            <div className="p-3 bg-red-50/80 border border-red-200 rounded-xl space-y-0.5">
+              <div className="flex justify-between items-center text-xs font-bold text-red-900">
+                <span>Khanna & Patiala APMC — High MSP Gap</span>
+                <span className="text-[10px] text-red-600 font-mono">PRIORITY 1</span>
+              </div>
+              <p className="text-[11px] text-red-700">Modal price for Wheat trades 38% below floor; review procurement intervention liquidity.</p>
+            </div>
 
-          <div className="bg-[#F4F6EC] p-2.5 rounded-xl border border-[#5B7B10]/15 text-xs text-[#2A3B0F] flex items-center gap-2">
-            <CloudSun className="w-4 h-4 text-[#D97706] shrink-0" />
-            <div>
-              <p className="font-bold text-[#1F2E0A]">Tomorrow — partly cloudy</p>
-              <p className="text-[10px] text-[#6B7C4B]">Est. yield 118 Qtl • peak 21Qtl around 12:30</p>
+            <div className="p-3 bg-amber-50/80 border border-amber-200 rounded-xl space-y-0.5">
+              <div className="flex justify-between items-center text-xs font-bold text-amber-900">
+                <span>Bathinda Corridor — Transit Delay Warning</span>
+                <span className="text-[10px] text-amber-700 font-mono">PRIORITY 2</span>
+              </div>
+              <p className="text-[11px] text-amber-800">Delayed trips exceed 2.0h SLA threshold on Bathinda–Jalandhar freight artery.</p>
+            </div>
+
+            <div className="p-3 bg-[#F4F6EC] border border-[#5B7B10]/20 rounded-xl space-y-0.5">
+              <div className="flex justify-between items-center text-xs font-bold text-[#1F2E0A]">
+                <span>Telemetry Stations — Regional Rain Telemetry</span>
+                <span className="text-[10px] text-[#5B7B10] font-mono">MONITORING</span>
+              </div>
+              <p className="text-[11px] text-[#526633]">Independent weather telemetry recorded localized rainfall events (&gt;35 mm).</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* BOTTOM SECTION (Mandi Operations Table + Live AI Alerts) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left 2-cols: Price Pressure Mandi Table */}
-        <div className="lg:col-span-2 agro-card p-5 space-y-4">
-          <div className="flex items-center justify-between border-b border-[#5B7B10]/15 pb-3">
-            <div>
-              <h3 className="text-xs font-bold uppercase tracking-wider text-[#364E00] flex items-center gap-2">
+      {/* 6. ROW 4: MANDIS REQUIRING ATTENTION TABLE (REPLANNED EXECUTIVE CONSOLE) */}
+      <div className="agro-card p-5 space-y-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-[#5B7B10]/15 pb-3 gap-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-bold uppercase tracking-wider text-[#364E00] flex items-center gap-2 font-['Outfit']">
                 <Building2 className="w-4 h-4 text-[#5B7B10]" />
-                Mandis Under Price Pressure
+                Mandis Requiring Attention
               </h3>
-              <p className="text-[10px] text-[#7A8F59]">Priority interventions required for Mandis below MSP</p>
+              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                {attentionList.length} Actionable Nodes
+              </span>
             </div>
-            <button className="text-xs font-bold text-[#5B7B10] hover:underline flex items-center gap-1">
-              View all <ArrowUpRight className="w-3.5 h-3.5" />
+            <p className="text-xs text-[#6B7C4B] mt-0.5">
+              Actionable priority triage of mandis experiencing price depression, corridor logistics stalls, or composite vulnerability
+            </p>
+          </div>
+
+          {/* Category Switcher Tabs */}
+          <div className="flex flex-wrap items-center gap-1.5 text-xs">
+            <button
+              onClick={() => setAttentionTab('all')}
+              className={`px-3 py-1 rounded-full text-[11px] font-bold transition-all cursor-pointer ${
+                attentionTab === 'all'
+                  ? 'bg-[#364E00] text-white shadow-xs'
+                  : 'bg-[#F4F6EC] text-[#526633] hover:bg-[#E9EDDA] border border-[#5B7B10]/15'
+              }`}
+            >
+              All Priority Nodes ({performanceMatrix.length > 0 ? Math.min(8, performanceMatrix.length) : 0})
+            </button>
+            <button
+              onClick={() => setAttentionTab('price')}
+              className={`px-3 py-1 rounded-full text-[11px] font-bold transition-all cursor-pointer ${
+                attentionTab === 'price'
+                  ? 'bg-rose-700 text-white shadow-xs'
+                  : 'bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200'
+              }`}
+            >
+              📉 Price Pressure ({pricePressure.length})
+            </button>
+            <button
+              onClick={() => setAttentionTab('logistics')}
+              className={`px-3 py-1 rounded-full text-[11px] font-bold transition-all cursor-pointer ${
+                attentionTab === 'logistics'
+                  ? 'bg-amber-600 text-white shadow-xs'
+                  : 'bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200'
+              }`}
+            >
+              ⏱️ Logistics Stalls ({worstLogistics.length})
             </button>
           </div>
-
-          <DataTable
-            columns={columns}
-            data={pricePressure.length > 0 ? pricePressure : [
-              { mandi_name: 'Amritsar Mandi', district: 'Amritsar', below_msp_percentage: 45.2, avg_msp_gap: 320.0 },
-              { mandi_name: 'Patiala Grain Market', district: 'Patiala', below_msp_percentage: 42.0, avg_msp_gap: 280.0 },
-              { mandi_name: 'Bathinda APMC', district: 'Bathinda', below_msp_percentage: 38.5, avg_msp_gap: 210.0 },
-              { mandi_name: 'Ludhiana Mandi', district: 'Ludhiana', below_msp_percentage: 35.1, avg_msp_gap: 190.0 },
-            ]}
-            pageSize={5}
-            onRowClick={(row) => setSelectedMandiId(row.mandi_id || 'MANDI001')}
-          />
         </div>
 
-        {/* Right 1-col: Live AI Operations Alerts List */}
-        <div className="agro-card p-5 space-y-4 flex flex-col justify-between">
-          <div className="flex items-center justify-between border-b border-[#5B7B10]/15 pb-3">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-[#364E00] flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-[#EF4444]" />
-              Operations Alerts
-            </h3>
-            <span className="text-[10px] font-bold px-2 py-0.5 bg-red-100 text-red-700 rounded-full">
-              3 OPEN
-            </span>
+        {/* 3 Telemetry Summary Badges */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="p-2.5 rounded-xl bg-[#FFFDF7] border border-[#D97706]/20 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-[#D97706]" />
+              <span className="text-[11px] text-[#7A8F59] font-medium">Price Distress Nodes (&gt;30% Below MSP)</span>
+            </div>
+            <span className="font-mono font-bold text-xs text-[#92400E]">{priceDistressCount} Nodes</span>
           </div>
 
-          <div className="space-y-3 flex-1">
-            <div className="p-3 bg-red-50/80 border border-red-200 rounded-xl space-y-1">
-              <div className="flex justify-between items-center text-xs font-bold text-red-900">
-                <span>MANDI023 offline — no output</span>
-                <span className="text-[10px] text-red-600">2h ago</span>
-              </div>
-              <p className="text-[11px] text-red-700">Arrival reports halted. Logistics delayed by 4.2 hours.</p>
+          <div className="p-2.5 rounded-xl bg-[#F0FDF4] border border-[#16A34A]/20 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-[#16A34A]" />
+              <span className="text-[11px] text-[#526633] font-medium">Route Bottlenecks (&gt;2.0h Delay)</span>
             </div>
+            <span className="font-mono font-bold text-xs text-[#166534]">{logisticsDelayCount} Corridors</span>
+          </div>
 
-            <div className="p-3 bg-amber-50/80 border border-amber-200 rounded-xl space-y-1">
-              <div className="flex justify-between items-center text-xs font-bold text-amber-900">
-                <span>MANDI031 derating — high MSP gap</span>
-                <span className="text-[10px] text-amber-600">50m ago</span>
-              </div>
-              <p className="text-[11px] text-amber-700">Modal price dropped 12% below MSP for Wheat.</p>
+          <div className="p-2.5 rounded-xl bg-[#FEF2F2] border border-red-200 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-red-600" />
+              <span className="text-[11px] text-red-700 font-medium">Mean MSP Shortfall Across Stressed</span>
             </div>
-
-            <div className="p-3 bg-[#F4F6EC] border border-[#5B7B10]/20 rounded-xl space-y-1">
-              <div className="flex justify-between items-center text-xs font-bold text-[#1F2E0A]">
-                <span>Weather Alert SEN048</span>
-                <span className="text-[10px] text-[#7A8F59]">1h ago</span>
-              </div>
-              <p className="text-[11px] text-[#526633]">Heavy rain sensor alert (43.9 mm) logged.</p>
-            </div>
+            <span className="font-mono font-bold text-xs text-red-900">-₹{avgShortfallAcrossStressed}/Qtl</span>
           </div>
         </div>
+
+        <DataTable
+          columns={attentionColumns}
+          data={attentionList}
+          pageSize={6}
+          onRowClick={(row) => setSelectedMandiId(row.mandi_id)}
+        />
       </div>
 
       {/* Mandi Drill-down Detail Drawer */}

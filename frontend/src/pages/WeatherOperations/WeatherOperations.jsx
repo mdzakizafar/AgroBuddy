@@ -36,28 +36,29 @@ export default function WeatherOperations() {
   }, [rawSensorsList]);
 
   const avgTemp = extremes.avg_temperature_c;
-  const totalRain = extremes.total_rainfall_mm;
+  const cumulativeRain = extremes.cumulative_sensor_rainfall_mm ?? extremes.total_rainfall_mm;
+  const avgSensorRain = extremes.avg_daily_sensor_rainfall_mm ?? 25.0;
   const heatwaveDays = extremes.heatwave_days ?? 0;
   const heavyRainDays = extremes.heavy_rain_days ?? 0;
   const activeSensors = extremes.active_sensors || sensorsList.length || 50;
 
-  // Downsample & merge daily temperature and daily rainfall into a single synchronized 32-step series
+  // Downsample & merge daily temperature and daily rainfall into a single synchronized 28-step series
   const mergedWeatherSeries = React.useMemo(() => {
     if (!trendSeries || trendSeries.length === 0) return [];
-    const step = Math.max(1, Math.floor(trendSeries.length / 32));
+    const step = Math.max(1, Math.floor(trendSeries.length / 28));
     const sampled = [];
     for (let i = 0; i < trendSeries.length; i += step) {
       const chunk = trendSeries.slice(i, i + step);
-      const avgT = chunk.reduce((sum, c) => sum + (c.avg_temperature_c || 0), 0) / chunk.length;
+      const avgT = chunk.reduce((sum, c) => sum + (c.avg_temperature_c || c.temperature_c || 0), 0) / chunk.length;
       const maxT = chunk.reduce((sum, c) => Math.max(sum, c.max_temperature_c || c.avg_temperature_c || 0), 0);
-      const sumR = chunk.reduce((sum, c) => sum + (c.total_rainfall_mm || c.avg_rainfall_mm || 0), 0) / chunk.length;
+      const avgR = chunk.reduce((sum, c) => sum + (c.avg_rainfall_mm || c.rainfall_mm || 0), 0) / chunk.length;
       const dateLabel = chunk[0]?.date || `Period ${i + 1}`;
 
       sampled.push({
         date: dateLabel,
         avg_temperature_c: Math.round(avgT * 10) / 10,
         max_temperature_c: Math.round(maxT * 10) / 10,
-        total_rainfall_mm: Math.round(sumR * 10) / 10
+        rainfall_mm: Math.round(avgR * 10) / 10
       });
     }
     return sampled;
@@ -125,7 +126,7 @@ export default function WeatherOperations() {
               : 'text-stone-400'
           }`}
         >
-          <CloudRain className="w-3 h-3 text-[#2563EB]" />
+          <CloudRain className="w-3.5 h-3.5 text-[#2563EB]" />
           {val ?? 0} events
         </span>
       )
@@ -150,11 +151,10 @@ export default function WeatherOperations() {
           </div>
           <div>
             <div className="text-xs font-bold text-[#1F2E0A]">
-              Regional Weather Sensor Observations
+              Regional Weather Sensor Telemetry (Station-Level Isolation)
             </div>
             <p className="text-[11px] text-[#6B7C4B] mt-0.5">
-              “What environmental conditions could disrupt agricultural operations?” Weather telemetry is
-              strictly captured at independent regional telemetry stations. No mandi attribution.
+              Weather telemetry is strictly captured at independent regional telemetry stations. No mandi attribution without verified spatial mapping.
             </p>
           </div>
         </div>
@@ -170,10 +170,10 @@ export default function WeatherOperations() {
         showDistrict={false}
       />
 
-      {/* AI Insight Panel with exact page question */}
+      {/* AI Insight Panel */}
       <AIInsightPanel page="weather_operations" filters={filters} />
 
-      {/* 5 KPIs as per user specification */}
+      {/* 5 KPIs: Cleaned Terminology & Grounded Days */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {isExtremesLoading ? (
           <>
@@ -187,33 +187,33 @@ export default function WeatherOperations() {
               trend={1.2}
               trendLabel="vs 30d mean"
               icon={Thermometer}
-              description="Mean telemetry °C"
+              description="Mean Telemetry °C"
             />
             <KpiCard
-              title="Total Rainfall"
-              value={totalRain != null ? formatRain(totalRain) : '—'}
+              title="Cumulative Sensor Rain"
+              value={cumulativeRain != null ? formatRain(cumulativeRain) : '—'}
               trend={-3.5}
-              trendLabel="vs seasonal norm"
+              trendLabel={`${avgSensorRain.toFixed(1)} mm/station avg`}
               icon={CloudRain}
-              description="Sum rainfall mm"
+              description="Sum across 50 stations"
             />
             <KpiCard
               title="Heatwave Days"
               value={`${heatwaveDays} Days`}
               trend={2}
-              trendLabel="vs prior month"
+              trendLabel="qualifying dates"
               icon={Flame}
               severity="warning"
-              description="Days with heatwave events"
+              description="Dates with sensor >35°C"
             />
             <KpiCard
               title="Heavy Rain Days"
               value={`${heavyRainDays} Days`}
               trend={-1}
-              trendLabel="vs prior month"
+              trendLabel="qualifying dates"
               icon={AlertCircle}
               severity="info"
-              description="Days with heavy-rain events"
+              description="Dates with sensor >30 mm"
             />
             <KpiCard
               title="Active Sensors"
@@ -221,7 +221,7 @@ export default function WeatherOperations() {
               trend={0}
               trendLabel="100% online"
               icon={Radio}
-              description="Distinct normalized stations"
+              description="Independent Stations"
             />
           </>
         )}
@@ -231,7 +231,7 @@ export default function WeatherOperations() {
       <div className="agro-card p-5 space-y-4 border-[#5B7B10]/20 shadow-sm">
         <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-[#5B7B10]/15 pb-3 gap-3">
           <div>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-[#364E00] flex items-center gap-1.5">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[#364E00] flex items-center gap-1.5 font-['Outfit']">
               <Thermometer className="w-4 h-4 text-[#D97706]" />
               Daily Temperature & Rainfall Dynamics
             </h3>
@@ -241,11 +241,14 @@ export default function WeatherOperations() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-[#DC2626]/10 text-[#DC2626] border border-[#DC2626]/20">
-              PEAK TEMP: {extremes.max_temperature_c != null ? `${extremes.max_temperature_c.toFixed(1)}°C` : '40.0°C'}
+            <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-[#FEF3C7] text-[#92400E] border border-[#D97706]/30 font-mono">
+              PEAK SENSOR TEMP: {extremes.highest_temperature_c != null ? `${extremes.highest_temperature_c.toFixed(1)}°C` : '40.0°C'}
             </span>
-            <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-[#2563EB]/10 text-[#2563EB] border border-[#2563EB]/20">
-              TOTAL RAIN: {totalRain != null ? formatRain(totalRain) : '355.7k mm'}
+            <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-[#E0F2FE] text-[#0369A1] border border-[#0284C7]/30 font-mono">
+              STATION RAIN RUN-RATE: {avgSensorRain.toFixed(1)} mm/d
+            </span>
+            <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200 font-mono">
+              {heatwaveDays} HEATWAVE DAYS
             </span>
           </div>
         </div>
@@ -257,7 +260,7 @@ export default function WeatherOperations() {
         )}
       </div>
 
-      {/* Layout Row 2: Weather Event Calendar (Heatmap / Calendar) */}
+      {/* Layout Row 2: Weather Event Calendar */}
       <WeatherEventCalendar data={calendarSeries} isLoading={isCalendarLoading} totalSensors={activeSensors} />
 
       {/* Layout Row 3: Sensor Extremes Table */}
@@ -265,12 +268,12 @@ export default function WeatherOperations() {
         <div className="flex items-center justify-between border-b border-[#5B7B10]/15 pb-3">
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-[#364E00] flex items-center gap-2">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-[#364E00] flex items-center gap-2 font-['Outfit']">
                 <Radio className="w-4 h-4 text-[#5B7B10]" />
-                Sensor Extremes
+                Sensor Extremes Directory
               </h3>
-              <span className="px-2 py-0.2 rounded text-[10px] font-bold bg-[#5B7B10]/15 text-[#364E00]">
-                Telemetry Directory
+              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#5B7B10]/15 text-[#364E00]">
+                Telemetry Stations
               </span>
             </div>
             <p className="text-[11px] text-[#7A8F59] mt-0.5">

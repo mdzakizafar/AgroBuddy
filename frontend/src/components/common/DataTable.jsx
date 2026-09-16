@@ -1,14 +1,18 @@
 import React, { useState } from 'react';
 import { ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
 
-export default function DataTable({ columns, data, pageSize = 8, onRowClick }) {
+export default function DataTable({ columns, data, pageSize = 8, onRowClick, dark = false }) {
   const [currentPage, setCurrentPage] = useState(1);
   const [sortColumn, setSortColumn] = useState(null);
   const [sortDirection, setSortDirection] = useState('asc');
 
   if (!data || data.length === 0) {
     return (
-      <div className="p-6 sm:p-8 text-center text-xs font-semibold text-[#7A8F59] bg-[#F4F6EC]/50 rounded-xl border border-dashed border-[#5B7B10]/20">
+      <div className={`p-6 sm:p-8 text-center text-xs font-semibold rounded-xl border border-dashed ${
+        dark 
+          ? 'bg-[#172208] text-[#8FA866] border-[#2D3F14]' 
+          : 'bg-[#F4F6EC]/50 text-[#7A8F59] border-[#5B7B10]/20'
+      }`}>
         No records available under current filter selection.
       </div>
     );
@@ -40,15 +44,21 @@ export default function DataTable({ columns, data, pageSize = 8, onRowClick }) {
 
   return (
     <div className="space-y-3 w-full">
-      <div className="overflow-x-auto rounded-xl border border-[#5B7B10]/15 w-full">
+      <div className={`overflow-x-auto rounded-xl border w-full ${dark ? 'border-[#2D3F14]' : 'border-[#5B7B10]/15'}`}>
         <table className="w-full text-left text-xs min-w-[540px] sm:min-w-full">
-          <thead className="bg-[#F4F6EC] text-[#364E00] font-bold uppercase tracking-wider border-b border-[#5B7B10]/15">
+          <thead className={`font-bold uppercase tracking-wider border-b ${
+            dark 
+              ? 'bg-[#1F2E0A] text-[#84CC16] border-[#2D3F14]' 
+              : 'bg-[#F4F6EC] text-[#364E00] border-[#5B7B10]/15'
+          }`}>
             <tr>
               {columns.map((col) => (
                 <th
                   key={col.key}
                   onClick={() => col.sortable !== false && handleSort(col.key)}
-                  className={`px-3 py-2.5 sm:p-3.5 select-none whitespace-nowrap ${col.sortable !== false ? 'cursor-pointer hover:bg-[#E9EDDA]' : ''}`}
+                  className={`px-3 py-2.5 sm:p-3.5 select-none whitespace-nowrap ${
+                    col.sortable !== false ? (dark ? 'cursor-pointer hover:bg-[#2A3B0F]' : 'cursor-pointer hover:bg-[#E9EDDA]') : ''
+                  }`}
                 >
                   <div className="flex items-center gap-1.5">
                     <span>{col.header}</span>
@@ -58,17 +68,19 @@ export default function DataTable({ columns, data, pageSize = 8, onRowClick }) {
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#5B7B10]/10 bg-white">
+          <tbody className={`divide-y ${dark ? 'divide-[#2D3F14] bg-[#172208]' : 'divide-[#5B7B10]/10 bg-white'}`}>
             {paginatedData.map((row, idx) => (
               <tr
                 key={idx}
                 onClick={() => onRowClick && onRowClick(row)}
                 className={`transition-colors ${
-                  onRowClick ? 'cursor-pointer hover:bg-[#F6F8EF]' : 'hover:bg-gray-50'
+                  onRowClick 
+                    ? (dark ? 'cursor-pointer hover:bg-[#1F2E0A]' : 'cursor-pointer hover:bg-[#F6F8EF]') 
+                    : (dark ? 'hover:bg-[#1A260A]' : 'hover:bg-gray-50')
                 }`}
               >
                 {columns.map((col) => (
-                  <td key={col.key} className="px-3 py-2.5 sm:p-3.5 text-[#1F2E0A] font-medium whitespace-nowrap">
+                  <td key={col.key} className={`px-3 py-2.5 sm:p-3.5 font-medium whitespace-nowrap ${dark ? 'text-[#E2E8F0]' : 'text-[#1F2E0A]'}`}>
                     {col.render ? col.render(row[col.key], row) : (row[col.key] !== undefined && row[col.key] !== null ? row[col.key] : '—')}
                   </td>
                 ))}
@@ -80,7 +92,7 @@ export default function DataTable({ columns, data, pageSize = 8, onRowClick }) {
 
       {/* Pagination Footer */}
       {totalPages > 1 && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-[#6B7C4B] px-1">
+        <div className={`flex flex-col sm:flex-row items-center justify-between gap-2 text-xs px-1 ${dark ? 'text-[#8FA866]' : 'text-[#6B7C4B]'}`}>
           <span className="text-[11px] sm:text-xs">
             Showing {startIndex + 1}–{Math.min(startIndex + pageSize, data.length)} of {data.length} records
           </span>
@@ -88,18 +100,26 @@ export default function DataTable({ columns, data, pageSize = 8, onRowClick }) {
             <button
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="p-1.5 rounded-lg bg-[#F4F6EC] hover:bg-[#E9EDDA] disabled:opacity-40 transition-colors cursor-pointer"
+              className={`p-1.5 rounded-lg disabled:opacity-40 transition-colors cursor-pointer ${
+                dark 
+                  ? 'bg-[#1F2E0A] text-[#84CC16] hover:bg-[#2A3B0F] border border-[#2D3F14]' 
+                  : 'bg-[#F4F6EC] hover:bg-[#E9EDDA]'
+              }`}
               aria-label="Previous Page"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <span className="font-bold text-[#1F2E0A] text-xs">
+            <span className={`font-bold text-xs ${dark ? 'text-white' : 'text-[#1F2E0A]'}`}>
               {currentPage} / {totalPages}
             </span>
             <button
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
-              className="p-1.5 rounded-lg bg-[#F4F6EC] hover:bg-[#E9EDDA] disabled:opacity-40 transition-colors cursor-pointer"
+              className={`p-1.5 rounded-lg disabled:opacity-40 transition-colors cursor-pointer ${
+                dark 
+                  ? 'bg-[#1F2E0A] text-[#84CC16] hover:bg-[#2A3B0F] border border-[#2D3F14]' 
+                  : 'bg-[#F4F6EC] hover:bg-[#E9EDDA]'
+              }`}
               aria-label="Next Page"
             >
               <ChevronRight className="w-4 h-4" />

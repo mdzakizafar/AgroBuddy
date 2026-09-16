@@ -37,4 +37,11 @@ class FilterOptionsResponse(BaseModel):
     districts: List[str]
     states: List[str]
     mandi_types: List[str]
+    data_as_of: str = "2026-09-09"
+    dashboard_date: str = "2026-09-16"
+    min_date: str = "2026-01-01"
+    max_date: str = "2026-09-09"
+    default_date_from: str = "2026-08-10"
+    default_date_to: str = "2026-09-09"
     metadata: ResponseMetadata
+
